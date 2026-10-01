@@ -261,10 +261,17 @@ const PROFILE_CROP_X = 280;   // กราฟอยู่ราว x≈305–141
 const PROFILE_CROP_Y = 1009;
 const PROFILE_VIEW_W = 1190;
 const PROFILE_VIEW_H = 712;
-// ย่อพอดีความกว้างกล่องทุกขนาดจอ (มือถือ/ไอแพด/คอมพิวเตอร์) ไม่ต้องเลื่อนซ้าย-ขวา
+// มือถือ (จอแคบ หรือมือถือแนวนอน): กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาในกล่อง
+// ไอแพด/คอมพิวเตอร์: ย่อพอดีความกว้างกล่อง
+function profileScrollMode() {
+  const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600;
+  return window.innerWidth < 760 || phone;
+}
 function fitFrame() {
   const wrap = $(".frame-wrap"), clip = $(".frame-clip"), f = $("#bmaProfile");
-  const s = wrap.clientWidth / PROFILE_VIEW_W;
+  const scroll = profileScrollMode();
+  document.body.classList.toggle("prof-scrolling", scroll);
+  const s = scroll ? 1 : wrap.clientWidth / PROFILE_VIEW_W;
   wrap.style.height = `${Math.round(PROFILE_VIEW_H * s)}px`;
   // หน้าต่างตัดขนาดเท่าส่วนกราฟ → ส่วนอื่นของหน้า สนน. ไม่โผล่
   clip.style.width = `${PROFILE_VIEW_W * s}px`;
@@ -272,7 +279,19 @@ function fitFrame() {
   f.style.width = `${PROFILE_PAGE_W}px`;
   f.style.height = `${PROFILE_PAGE_H}px`;
   f.style.transform = `scale(${s}) translate(${-PROFILE_CROP_X}px, ${-PROFILE_CROP_Y}px)`;
+  if (!scroll) wrap.scrollLeft = 0;
+  syncProfScroll();
 }
+// แถบเลื่อน ↔ ตำแหน่งเลื่อนของกล่องกราฟ
+function syncProfScroll() {
+  const wrap = $(".frame-wrap"), max = wrap.scrollWidth - wrap.clientWidth;
+  $("#profScroll").value = max > 0 ? Math.round(wrap.scrollLeft / max * 1000) : 0;
+}
+$("#profScroll").addEventListener("input", (e) => {
+  const wrap = $(".frame-wrap");
+  wrap.scrollLeft = (wrap.scrollWidth - wrap.clientWidth) * e.target.value / 1000;
+});
+$(".frame-wrap").addEventListener("scroll", syncProfScroll, { passive: true });
 
 /* ---------- แผนผังระยะห่างระหว่างจุดวัดตามแนวคลอง ---------- */
 const svgEl = (n, a, p, txt) => {

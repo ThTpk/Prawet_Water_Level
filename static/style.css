@@ -166,6 +166,14 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .frame-wrap.ready #bmaProfile { opacity: 1; }
 .frame-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; }
 .frame-wrap.ready .frame-msg { display: none; }
+/* มือถือ: กราฟขนาดจริง เลื่อนซ้าย-ขวา (pages.js fitFrame ใส่ .prof-scrolling ที่ body) */
+.prof-scroll { display: none; }
+.prof-scrolling .frame-wrap { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.prof-scrolling .prof-scroll { display: block; margin-top: 8px; }
+#profScroll { width: 100%; margin: 0; accent-color: var(--accent); }
+.rotate-hint { margin: 4px 0 0; color: var(--muted); }
+.rotate-hint::before { content: "⟳ "; }
+@media (orientation: landscape) { .rotate-hint { display: none; } }
 .btn.ghost { background: transparent; color: var(--accent); }
 .btn.small { padding: 3px 10px; font-size: 13px; }
 .img-btn { position: relative; }
