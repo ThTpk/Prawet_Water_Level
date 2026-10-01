@@ -257,42 +257,21 @@ function refresh() {
    — ถ้า สนน. ปรับหน้าเว็บ ต้องวัดใหม่ */
 const PROFILE_PAGE_W = 1460;
 const PROFILE_PAGE_H = 4600;  // สูงกว่าทั้งหน้า MapLetLeaf
-const PROFILE_CROP_X = 315;
+const PROFILE_CROP_X = 280;   // กราฟอยู่ราว x≈305–1415 (บางครั้ง 345–1455 ก่อนหน้า สนน. จัดวางใหม่) → เผื่อขอบทั้งสองแบบ
 const PROFILE_CROP_Y = 1009;
-const PROFILE_VIEW_W = 1150;
+const PROFILE_VIEW_W = 1190;
 const PROFILE_VIEW_H = 712;
+// ย่อพอดีความกว้างกล่องทุกขนาดจอ (มือถือ/ไอแพด/คอมพิวเตอร์) ไม่ต้องเลื่อนซ้าย-ขวา
 function fitFrame() {
   const wrap = $(".frame-wrap"), clip = $(".frame-clip"), f = $("#bmaProfile");
-  const full = wrap.classList.contains("full");
-  let s, clipTransform = "none";
-  if (!full) {
-    // ปกติ: ย่อพอดีความกว้างกล่อง (จอแคบตัวหนังสือเล็ก → แตะเพื่อขยายเต็มจอ)
-    s = wrap.clientWidth / PROFILE_VIEW_W;
-    wrap.style.height = `${Math.round(PROFILE_VIEW_H * s)}px`;
-  } else {
-    // เต็มจอ: ใหญ่ที่สุดที่พอดีจอ — จอแนวตั้งหมุนกราฟ 90° ใช้ด้านยาวของจอ
-    const W = window.innerWidth, H = window.innerHeight - 56;   // เว้นแถบปุ่มปิดด้านบน
-    const rotate = H > W * 1.15;
-    s = rotate ? Math.min(H / PROFILE_VIEW_W, W / PROFILE_VIEW_H) : Math.min(W / PROFILE_VIEW_W, H / PROFILE_VIEW_H);
-    s *= 0.98;
-    wrap.style.height = "";
-    clipTransform = `translate(${W / 2}px, ${56 + H / 2}px) ${rotate ? "rotate(90deg)" : ""} ` +
-      `translate(${(-PROFILE_VIEW_W * s) / 2}px, ${(-PROFILE_VIEW_H * s) / 2}px)`;
-  }
+  const s = wrap.clientWidth / PROFILE_VIEW_W;
+  wrap.style.height = `${Math.round(PROFILE_VIEW_H * s)}px`;
   // หน้าต่างตัดขนาดเท่าส่วนกราฟ → ส่วนอื่นของหน้า สนน. ไม่โผล่
   clip.style.width = `${PROFILE_VIEW_W * s}px`;
   clip.style.height = `${PROFILE_VIEW_H * s}px`;
-  clip.style.transform = clipTransform;
   f.style.width = `${PROFILE_PAGE_W}px`;
   f.style.height = `${PROFILE_PAGE_H}px`;
   f.style.transform = `scale(${s}) translate(${-PROFILE_CROP_X}px, ${-PROFILE_CROP_Y}px)`;
-}
-function setFull(on) {
-  const wrap = $(".frame-wrap");
-  wrap.classList.toggle("full", on);
-  document.body.classList.toggle("no-scroll", on);
-  fitFrame();
-  if (on) $("#btnCloseFull").focus({ preventScroll: true });
 }
 
 /* ---------- แผนผังระยะห่างระหว่างจุดวัดตามแนวคลอง ---------- */
@@ -445,7 +424,6 @@ function reclaimFocus() {
   const a = document.activeElement;
   const usingFrame = a === hoveredFrame && Date.now() - hoverSince > 1000 && Math.abs(window.scrollY - stableY) < 3;
   if (a?.tagName !== "IFRAME" || usingFrame || userActive()) return;
-  if (a.id === "bmaProfile" && $(".frame-wrap").classList.contains("full")) return;  // กำลังดูกราฟเต็มจอ
   stealAt = Date.now();
   $("#focusSink").focus({ preventScroll: true });
   if (Math.abs(window.scrollY - stableY) > 2) window.scrollTo(0, stableY);
@@ -509,7 +487,12 @@ $("#bmaProfile").addEventListener("load", (e) => {
     return done();
   }
   profileState.tries = 0;
-  setTimeout(() => { $(".frame-wrap").classList.add("ready"); done(); }, 800);
+  // กราฟ Highcharts ของ สนน. อาจวัดขนาดก่อนหน้าเว็บจัดวางเสร็จ จึงกว้างเกิน (ขวาโดนตัด)
+  // ขยับความกว้างกรอบ 1px ให้เกิด resize ภายใน แล้วกราฟจะวาดใหม่พอดีหน้า
+  const f = e.target;
+  setTimeout(() => { f.style.width = `${PROFILE_PAGE_W + 1}px`; }, 500);
+  setTimeout(() => { f.style.width = `${PROFILE_PAGE_W}px`; }, 700);
+  setTimeout(() => { $(".frame-wrap").classList.add("ready"); done(); }, 1000);
 });
 // จัดขนาดใหม่เฉพาะเมื่อ "ความกว้าง" เปลี่ยน — ใน Apps Script กรอบของ Google ปรับความสูงตามเนื้อหา
 // ซึ่งยิง resize ทุกครั้งที่ความสูงเปลี่ยน ถ้าวาดใหม่ทุกครั้งจะวนไม่จบ (หน้าค้าง)
@@ -526,10 +509,6 @@ fitFrame();
 
 $("#btnRefresh").addEventListener("click", refresh);
 $("#fabRefresh").addEventListener("click", refresh);
-$("#btnExpand").addEventListener("click", () => setFull(true));
-$("#btnCloseFull").addEventListener("click", () => setFull(false));
-// หมุนจอ/แถบที่อยู่ของมือถือยุบ-ขยาย ขณะเต็มจอ → จัดขนาดใหม่
-window.addEventListener("resize", () => { if ($(".frame-wrap").classList.contains("full")) fitFrame(); });
 $("#carPrev").addEventListener("click", () => step(-1));
 $("#carNext").addEventListener("click", () => step(1));
 $("#cards").addEventListener("scroll", onTrackScroll, { passive: true });
@@ -556,7 +535,7 @@ document.addEventListener("click", (e) => {
   } else if (e.target.closest("#lightbox")) lb.hidden = true;
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { $("#lightbox").hidden = true; setFull(false); return; }
+  if (e.key === "Escape") { $("#lightbox").hidden = true; return; }
   // ลูกศรซ้าย/ขวา เปลี่ยนสถานี (เมื่อไม่ได้เปิดภาพขยายหรือพิมพ์อยู่)
   const busy = !$("#lightbox").hidden || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if (!busy && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {

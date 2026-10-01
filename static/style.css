@@ -159,32 +159,6 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 
 /* ---------- iframe (GitHub Pages) ---------- */
 .frame-wrap { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; min-height: 200px; }
-/* จอแคบ: แตะกราฟเพื่อขยายเต็มจอ */
-.frame-expand, .frame-close { display: none; }
-@media (max-width: 900px) {
-  .frame-expand {
-    display: block; position: absolute; inset: 0; z-index: 2; width: 100%;
-    border: 0; padding: 0; background: transparent; cursor: zoom-in; -webkit-tap-highlight-color: transparent;
-  }
-  .frame-expand span {
-    position: absolute; right: 8px; bottom: 8px; padding: 5px 11px; border-radius: 999px;
-    background: rgba(0,0,0,.65); color: #fff; font: inherit; font-size: 12.5px; font-weight: 600;
-  }
-}
-/* เต็มจอ (ใช้ได้ทุกขนาดจอ) */
-.frame-wrap.full {
-  position: fixed; inset: 0; z-index: 600; border: 0; border-radius: 0; height: auto !important;
-  background: #111; min-height: 0;
-}
-.frame-wrap.full .frame-expand { display: none; }
-.frame-wrap.full .frame-msg { color: #ccc; }
-.frame-wrap.full .frame-close {
-  display: block; position: absolute; top: 10px; right: 12px; z-index: 3;
-  padding: 7px 16px; border-radius: 999px; border: 0; background: #fff; color: #111;
-  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
-}
-body.no-scroll { overflow: hidden; }
-body.no-scroll .fab { display: none; }
 /* หน้า สนน. ทั้งหน้าในกรอบ ย่อ/ตัดด้วย transform ใน pages.js (fitFrame) */
 /* หน้าต่างตัดเฉพาะส่วนกราฟ (ขนาด/การหมุนตั้งใน pages.js fitFrame) */
 .frame-clip { position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; background: #fff; }
