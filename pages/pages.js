@@ -19,6 +19,12 @@ const STATIONS = [
   { id: 65, name: "ค.ประเวศฯ-ถ.ร่วมพัฒนา", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 28.3 },
 ];
 
+// ลิงก์ไปเว็บ สนน. ต่อท้ายด้วย #id เปิดแล้วเลื่อนไปที่กราฟเลย (วัด 1 ต.ค. 2569)
+// หน้า สนน. ปักหมุดแถบหัวเว็บ (สูง ~190–230px) เมื่อเลื่อนเกิน 30px แถบจึงบังส่วนบนของจุดที่เลื่อนไป
+// → หน้าสถานีชี้ไปที่ "สถานะอุปกรณ์" (#devicestatus) ซึ่งอยู่เหนือหัวข้อกราฟย้อนหลัง ~300px กราฟจึงโผล่ใต้แถบพอดี
+// → MapLetLeaf ชี้ไปที่หัวข้อ "ข้อมูลระดับน้ำ" (#waterlevelinformation) เหนือช่องเลือกคลองและกราฟ (ใน pages/index.html)
+const HIST_ANCHOR = "#devicestatus";
+
 // สถานีที่แสดงเมื่อเปิดหน้า (จุดอื่นโหลดเมื่อกดปุ่มเท่านั้น)
 const START_STATION_ID = 39; // ปตร.คลองประเวศฯ-ลาดกระบัง
 
@@ -44,7 +50,7 @@ function renderCards() {
       </button>
       <footer class="small">
         <span class="muted">ระดับน้ำและเกณฑ์อยู่ในภาพ (ม.รทก.)</span>
-        <a href="${BMA}/StationDetail?id=${s.id}" target="_blank" rel="noopener noreferrer">ดูกราฟระดับน้ำย้อนหลังที่หน้า สนน. ↗</a>
+        <a href="${BMA}/StationDetail?id=${s.id}${HIST_ANCHOR}" target="_blank" rel="noopener noreferrer">ดูกราฟระดับน้ำย้อนหลังที่หน้า สนน. ↗</a>
       </footer>
     </article>`;
   }).join("");
