@@ -211,7 +211,7 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 
 /* แผนผังระยะห่างระหว่างจุดวัด */
 .dist-head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 14px 0 4px; }
-.dist-map { overflow-x: auto; }
+.dist-map { overflow-x: auto; min-height: 158px; }
 .dist-map svg { display: block; font-family: inherit; }
 .dm-canal { stroke: var(--water); stroke-width: 6; stroke-linecap: round; opacity: .55; }
 .dm-dim { stroke: var(--muted); stroke-width: 1; }

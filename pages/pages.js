@@ -112,6 +112,12 @@ function markCurrent() {
 // ปัดด้วยนิ้ว/ทัชแพด: อัปเดตสถานีปัจจุบันตามการ์ดที่อยู่กลางกรอบ
 let scrollT;
 function onTrackScroll() {
+  // ระหว่างโหลดกราฟ สนน. ถ้าแถบเลื่อนขยับเองโดยผู้ใช้ไม่ได้ทำ ให้กลับไปสถานีเดิม
+  if (Date.now() < guardUntil && Date.now() - lastUserInput > 800) {
+    const card = $(`#st-${currentId}`), track = $("#cards");
+    if (card && Math.abs(track.scrollLeft - (card.offsetLeft - track.offsetLeft)) > 2) goTo(currentId, false);
+    return;
+  }
   clearTimeout(scrollT);
   scrollT = setTimeout(() => {
     const track = $("#cards");
@@ -170,9 +176,10 @@ function drawDistMap() {
     p.appendChild(e);
     return e;
   };
-  box.innerHTML = "";
-  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img",
-    "aria-label": "แผนผังระยะห่างระหว่างจุดวัดระดับน้ำตามแนวคลองประเวศ" }, box);
+  // สร้างใหม่ทั้งชิ้นแล้วค่อยสลับ (ไม่ล้างกล่องก่อน) ความสูงหน้าจึงไม่กระตุก
+  const svg = document.createElementNS(NS, "svg");
+  for (const [k, v] of Object.entries({ viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img",
+    "aria-label": "แผนผังระยะห่างระหว่างจุดวัดระดับน้ำตามแนวคลองประเวศ" })) svg.setAttribute(k, v);
   el("text", { x: 4, y: LINE_Y + 4, class: "dm-end" }, svg, "ตะวันตก");
   el("text", { x: W - 4, y: LINE_Y + 4, class: "dm-end", "text-anchor": "end" }, svg, "ตะวันออก");
   el("line", { x1: X(0), x2: X(total), y1: LINE_Y, y2: LINE_Y, class: "dm-canal" }, svg);
@@ -200,6 +207,7 @@ function drawDistMap() {
     el("text", { x: tx, y: ly, "text-anchor": anchor, class: "dm-name" }, g, `${i + 1}. ${s.name}`);
     el("text", { x: tx, y: ly + 17, "text-anchor": anchor, class: "dm-km" }, g, `กม. ${s.km.toFixed(1)}`);
   });
+  box.replaceChildren(svg);
   markCurrent();
 }
 function onDistPick(e) {
@@ -226,9 +234,25 @@ function sizeHist(box) {
   f.style.height = `${BMA_PAGE_H}px`;
   f.style.transform = `scale(${s}) translate(${-HIST_CROP_X}px, ${-top}px)`;
 }
+/* หน้าสถานีของ สนน. ในกรอบกราฟย้อนหลังมีการโฟกัส/เลื่อนบางอย่างระหว่างโหลด ซึ่งลากหน้าเราลงไปด้วย
+   ระหว่างโหลด จึงคืนตำแหน่งเลื่อนเดิม ถ้าการเลื่อนนั้นไม่ได้มาจากผู้ใช้ (ล้อเมาส์/นิ้ว/คีย์/คลิก) */
+let lastUserInput = 0, guardUntil = 0, guardY = 0;
+["wheel", "touchstart", "keydown", "mousedown"].forEach((ev) =>
+  window.addEventListener(ev, () => { lastUserInput = Date.now(); }, { passive: true, capture: true }));
+window.addEventListener("scroll", () => {
+  const now = Date.now();
+  if (now < guardUntil && now - lastUserInput > 800) window.scrollTo(0, guardY);
+  else guardY = window.scrollY;
+}, { passive: true });
+function guardScroll(ms) {
+  guardY = window.scrollY;
+  guardUntil = Date.now() + ms;
+}
+
 function loadHist(id, force = false) {
   const box = $(`.hist-frame[data-id="${id}"]`);
   if (!box || (box.dataset.loaded && !force)) return;
+  guardScroll(15000);
   box.dataset.loaded = "1";
   box.classList.remove("ready");
   $("iframe", box)?.remove();
@@ -262,12 +286,16 @@ $("#btnSidebar").addEventListener("click", (e) => {
   e.currentTarget.setAttribute("aria-pressed", String(showSidebar));
   fitFrame();
 });
-let rz;
+// จัดขนาดใหม่เฉพาะเมื่อ "ความกว้าง" เปลี่ยน — ใน Apps Script กรอบของ Google ปรับความสูงตามเนื้อหา
+// ซึ่งยิง resize ทุกครั้งที่ความสูงเปลี่ยน ถ้าวาดใหม่ทุกครั้งจะวนไม่จบ (หน้าค้าง)
+let rz, lastW = window.innerWidth;
 window.addEventListener("resize", () => {
+  if (window.innerWidth === lastW) return;
+  lastW = window.innerWidth;
   clearTimeout(rz);
   rz = setTimeout(() => {
     fitFrame(); drawDistMap(); $$(".hist-frame").forEach(sizeHist); goTo(currentId, false);
-  }, 100);
+  }, 150);
 });
 fitFrame();
 
