@@ -1,0 +1,44 @@
+# ทดสอบ: เครื่องของ GitHub Actions ดึงหน้า GraphOnIframe ของ สนน. ได้หรือไม่ (ยิง 1 ครั้ง)
+# ถ้าได้ → ใช้ GitHub Actions รัน collector.py ตามเวลาได้ (เซิร์ฟเวอร์ Google โดน Cloudflare ตอบ 403)
+# รันเองเมื่อ push ไฟล์นี้ หรือกด Run workflow ในแท็บ Actions; ผลบันทึกที่ probe/result-*.txt
+name: test-bma-access
+
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/test-bma-access.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ยิง GraphOnIframe จุด 39 หนึ่งครั้ง
+        run: |
+          set +e
+          curl -sS -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 LKB-Flood-Monitor/2.0" \
+            -o page.html -D headers.txt -w "%{http_code} %{size_download}" \
+            "https://weather.bangkok.go.th/water/GraphOnIframe/Index?id=39&countwl=2" > status.txt
+          {
+            echo "time: $(date -u +%FT%TZ)"
+            echo "runner: $(curl -s https://www.cloudflare.com/cdn-cgi/trace | grep -E '^(loc|colo)=' | tr '\n' ' ')"
+            echo "result (http size): $(cat status.txt)"
+            grep -i -E '^(server|cf-ray|cf-mitigated|retry-after):' headers.txt
+            echo "has appl: $(grep -cE 'appl\s*=\s*\[' page.html)"
+            echo "title: $(grep -o '<title>[^<]*' page.html | head -1)"
+          } > probe-result.txt
+          cat probe-result.txt
+
+      - name: บันทึกผลลง repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p probe
+          cp probe-result.txt "probe/result-$(date -u +%Y%m%dT%H%M%SZ).txt"
+          git add probe
+          git commit -m "ผลทดสอบเข้าถึง สนน. จาก GitHub Actions"
+          git push
