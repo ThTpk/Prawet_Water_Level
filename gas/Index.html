@@ -581,7 +581,7 @@ function pump() {
   try { task.run(done); } catch (err) { console.error(err); done(); }
 }
 function retryLater(key, run, tries) {
-  setTimeout(() => enqueue(key, run, true), RETRY_DELAYS[tries]);
+  setTimeout(() => enqueue(key, run, true), RETRY_DELAYS[Math.min(tries, RETRY_DELAYS.length - 1)]);
 }
 
 // กราฟหลัก (MapLetLeaf)
@@ -902,9 +902,13 @@ $("#bmaProfile").addEventListener("load", (e) => {
   try { if (e.target.contentWindow.location.href === "about:blank") return; } catch { /* หน้า สนน. */ }
   const done = profileState.done || (() => {});
   profileState.done = null;
-  if (Date.now() - profileState.start < FAST_FAIL_MS && profileState.tries < RETRY_DELAYS.length) {
-    // ได้หน้า 403 → ซ่อนกรอบ (แสดงข้อความกำลังโหลด) แล้วกลับเข้าคิวภายหลัง
+  if (Date.now() - profileState.start < FAST_FAIL_MS) {
+    // ได้หน้า 403 → ซ่อนกรอบ (แสดงข้อความ) แล้วกลับเข้าคิวภายหลัง
+    // กราฟหลักลองใหม่ไปเรื่อย ๆ (ทุก 1 นาทีหลังครั้งที่ 5) ไม่ยอมแสดงหน้า 403 เป็นกราฟขาว
     $(".frame-wrap").classList.remove("ready");
+    $(".frame-msg").textContent = profileState.tries < 2
+      ? "กำลังโหลดกราฟระดับน้ำจาก สนน.…"
+      : "สนน. ปฏิเสธการเชื่อมต่อชั่วคราว (มีคนเรียกข้อมูลถี่) — จะลองใหม่อัตโนมัติ";
     retryLater("profile", profileTask, profileState.tries++);
     return done();
   }
