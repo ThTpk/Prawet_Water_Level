@@ -22,6 +22,20 @@
 ข้อจำกัด: กราฟในกรอบเป็นหน้าเว็บของ สนน. ทั้งหน้า (เลื่อนในกรอบได้) และถ้า สนน. ปิดการฝังหน้า
 หรือเปลี่ยนรหัสสถานี หน้านี้ต้องปรับตาม (รายชื่อสถานีอยู่ใน `pages/pages.js`)
 
+## Google Apps Script Web App (โฟลเดอร์ `gas/`)
+
+เว็บ: https://script.google.com/macros/s/AKfycby89ZK2THTWzkvEFOgzwtC5PB62JIF1JFEczwgEIoYp7Ys-W-9UW8dGQ-S5QrSuCHnw/exec
+(บัญชี thanunchaithreepak@gmail.com · เปิดได้ทุกคนโดยไม่ต้องล็อกอิน)
+
+หน้าเดียวกับ GitHub Pages — `gas/Index.html` สร้างจาก `pages/` อัตโนมัติ อัปเดตแล้วลิงก์ไม่เปลี่ยน:
+
+```bash
+python build_gas.py
+cd gas
+clasp push -f
+clasp deploy -i AKfycby89ZK2THTWzkvEFOgzwtC5PB62JIF1JFEczwgEIoYp7Ys-W-9UW8dGQ-S5QrSuCHnw -d "อธิบายการแก้ไข"
+```
+
 ## ใช้งานในเครื่อง (Flask, แผนภาพวาดเอง)
 
 ```bash
