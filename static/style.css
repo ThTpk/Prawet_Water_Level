@@ -157,15 +157,6 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .st-card footer { margin-top: auto; display: flex; justify-content: space-between; gap: 8px; padding: 10px 14px 12px; flex-wrap: wrap; }
 .stale { color: var(--crit); font-weight: 600; }
 
-/* ---------- iframe (GitHub Pages) ---------- */
-.frame-wrap { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; min-height: 200px; }
-/* หน้า สนน. ทั้งหน้าในกรอบ ย่อ/ตัดด้วย transform ใน pages.js (fitFrame) */
-/* หน้าต่างตัดเฉพาะส่วนกราฟ (ขนาด/การหมุนตั้งใน pages.js fitFrame) */
-.frame-clip { position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; background: #fff; }
-#bmaProfile { position: absolute; left: 0; top: 0; border: 0; max-width: none; transform-origin: 0 0; opacity: 0; transition: opacity .3s; }
-.frame-wrap.ready #bmaProfile { opacity: 1; }
-.frame-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; }
-.frame-wrap.ready .frame-msg { display: none; }
 .btn.ghost { background: transparent; color: var(--accent); }
 .btn.small { padding: 3px 10px; font-size: 13px; }
 .img-btn { position: relative; }
@@ -192,20 +183,9 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .stn-btn.on small { color: rgba(255, 255, 255, .85); }
 .stn-btn.on .n { background: rgba(255, 255, 255, .22); color: #fff; }
 .stn-view { max-width: 920px; margin: 0 auto; }
-/* กราฟของ สนน. ยังไม่โหลด: แสดงปุ่ม "โหลดกราฟ" กลางกรอบแทน */
-.graph-load { position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 10px 20px; font-size: 15px; }
-.frame-wrap:not(.idle) .graph-load, .hist-frame[data-want] .hist-load { display: none; }
-.frame-wrap.idle .frame-msg, .hist-frame:not([data-want]) .hist-msg { display: none; }
 
-/* กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ (iframe ย่อด้วย transform ใน pages.js) */
-.hist-frame { position: relative; overflow: hidden; background: #fff; border-top: 1px solid var(--line); min-height: 120px; }
-.hist-frame iframe { position: absolute; left: 0; top: 0; border: 0; max-width: none; transform-origin: 0 0; opacity: 0; transition: opacity .3s; }
-.hist-frame.ready iframe { opacity: 1; }
-.hist-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; }
-.hist-frame.ready .hist-msg { display: none; }
 
 /* แผนผังระยะห่างระหว่างจุดวัด */
-.dist-head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 14px 0 4px; }
 .dist-map { overflow-x: auto; min-height: 158px; }
 .dm-hit { fill: transparent; }
 .dist-map svg { display: block; font-family: inherit; }
@@ -241,9 +221,6 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
   .panel { padding: 14px; }
 }
 
-/* รับโฟกัสคืนจากกรอบ สนน. โดยไม่ทำให้หน้าเลื่อน */
-.focus-sink { position: fixed; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; outline: none; }
-
 /* ---------- Responsive: ไอแพด / มือถือ ---------- */
 @media (max-width: 1024px) {
   main { padding: 16px 18px 36px; gap: 18px; }
@@ -252,7 +229,6 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 @media (max-width: 760px) {
   .section-head { flex-direction: column; align-items: stretch; }
   .section-head .seg { align-self: flex-start; }
-  .dist-head { flex-direction: column; gap: 2px; }
   .st-card header { padding: 10px 12px 8px; }
   .st-card footer { padding: 8px 12px 10px; }
 }

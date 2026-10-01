@@ -1,40 +1,23 @@
-/* หน้าเว็บ Apps Script: ทุกอย่างโหลดสดจากเว็บ สนน. ในเบราว์เซอร์ของผู้ชม (ไม่มีเซิร์ฟเวอร์กลาง) */
+/* หน้าเว็บ Apps Script: ภาพโหลดสดจากเว็บ สนน. ในเบราว์เซอร์ของผู้ชม (ไม่มีเซิร์ฟเวอร์กลาง)
+   ไม่ฝังหน้าเว็บ สนน. (iframe) แล้ว: หน้าสถานีของ สนน. (และน่าจะ MapLetLeaf ด้วย) มีสคริปต์โหลด languages/th.json
+   วนไม่หยุด (~7 ครั้ง/วินาที ตลอดที่เปิดหน้า วัด 1 ต.ค. 2569) ทำให้ Cloudflare บล็อก IP ผู้ชม — จึงใช้เฉพาะภาพรูปตัด (1 คำขอต่อภาพ)
+   ส่วนกราฟเป็นลิงก์ให้เปิดที่เว็บ สนน. เอง */
 "use strict";
 
 const BMA = "https://weather.bangkok.go.th/water";
 
 // สถานีบนแผนภาพคลองประเวศ เรียงตะวันตก -> ตะวันออก (ตามหน้า MapLetLeaf, selriver=30_1)
 // km = ระยะสะสมโดยประมาณ (เส้นตรงระหว่างพิกัดสถานีของ สนน.)
-// histTop / histTopM = ตำแหน่งแถบหัวข้อ "ข้อมูลระดับน้ำย้อนหลัง" (px จากบนสุด) ในหน้าสถานีของ สนน.
-//   แบบจอใหญ่ (กว้าง 1180) / แบบมือถือ (กว้าง 440) โดยไม่เลื่อนหน้า
-//   (วัดจริง 1 ต.ค. 2569 — ถ้า สนน. ปรับหน้าเว็บต้องวัดใหม่)
 const STATIONS = [
-  { id: 43, name: "ส.พระโขนง", kind: "สถานีสูบน้ำ", district: "คลองเตย", km: 0, histTop: 1610, histTopM: 1340 },
-  { id: 238, name: "ค.ประเวศ ซ.อ่อนนุช 17", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 1.8, histTop: 1317, histTopM: 1027 },
-  { id: 42, name: "ค.ประเวศฯ-วัดขจรฯ", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 5.1, histTop: 1618, histTopM: 1346 },
-  { id: 40, name: "ปตร.คลองประเวศฯ-วัดกระทุ่มฯ", kind: "ประตูระบายน้ำ", district: "ประเวศ", km: 10.4, histTop: 1647, histTopM: 1358 },
-  { id: 206, name: "ค.ตาพุก ถ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ประเวศ", km: 12.6, histTop: 1317, histTopM: 1027 },
-  { id: 39, name: "ปตร.คลองประเวศฯ-ลาดกระบัง", kind: "ประตูระบายน้ำ", district: "ลาดกระบัง", km: 17.0, histTop: 1647, histTopM: 1358 },
-  { id: 64, name: "ค.ประเวศฯ-รพ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 20.7, histTop: 1618, histTopM: 1346 },
-  { id: 65, name: "ค.ประเวศฯ-ถ.ร่วมพัฒนา", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 28.3, histTop: 1618, histTopM: 1346 },
+  { id: 43, name: "ส.พระโขนง", kind: "สถานีสูบน้ำ", district: "คลองเตย", km: 0 },
+  { id: 238, name: "ค.ประเวศ ซ.อ่อนนุช 17", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 1.8 },
+  { id: 42, name: "ค.ประเวศฯ-วัดขจรฯ", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 5.1 },
+  { id: 40, name: "ปตร.คลองประเวศฯ-วัดกระทุ่มฯ", kind: "ประตูระบายน้ำ", district: "ประเวศ", km: 10.4 },
+  { id: 206, name: "ค.ตาพุก ถ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ประเวศ", km: 12.6 },
+  { id: 39, name: "ปตร.คลองประเวศฯ-ลาดกระบัง", kind: "ประตูระบายน้ำ", district: "ลาดกระบัง", km: 17.0 },
+  { id: 64, name: "ค.ประเวศฯ-รพ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 20.7 },
+  { id: 65, name: "ค.ประเวศฯ-ถ.ร่วมพัฒนา", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 28.3 },
 ];
-
-/* กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ: เปิดหน้าสถานีในกรอบที่ "สูงพอทั้งหน้า" (หน้าไม่ต้องเลื่อน)
-   แล้วตัดให้เห็นเฉพาะหัวข้อ + กราฟที่ตำแหน่ง histTop จากนั้นย่อด้วย CSS ให้พอดีการ์ด
-   - ไม่ใช้การเลื่อนไป anchor เพราะหน้า สนน. ปักหมุดแถบเมนูเมื่อเลื่อน ทำให้ตำแหน่งคลาดไม่แน่นอน
-   - โหลดเฉพาะสถานีที่กำลังแสดง (สนน. บล็อกชั่วคราวถ้าโหลดหน้าสถานีพร้อมกันหลายหน้า) */
-// สองแบบตามความกว้างการ์ด: จอใหญ่ใช้หน้า สนน. แบบเดสก์ท็อป, มือถือใช้หน้า สนน. แบบมือถือ
-// (กราฟแคบแต่ตัวหนังสือขนาดปกติ — ถ้าย่อแบบเดสก์ท็อปลงจอมือถือจะอ่านไม่ออก)
-const HIST_LAYOUTS = {
-  // หน้า สนน. กว้าง 1180: แถบเมนู 260 + เนื้อหา 920; แถบหัวข้อ x≈340, กราฟ x≈345 กว้าง 830 สูง 250
-  desktop: { pageW: 1180, cropX: 300, viewW: 900, viewH: 312, topKey: "histTop" },
-  // หน้า สนน. กว้าง 440 (ซ่อนแถบเมนูเอง): แถบหัวข้อ x≈80 กว้าง 360, กราฟ x≈85 กว้าง 350 อยู่ใต้หัวข้อ 79px
-  mobile: { pageW: 440, cropX: 45, viewW: 405, viewH: 346, topKey: "histTopM" },
-};
-const HIST_MOBILE_BELOW = 620;  // การ์ดแคบกว่านี้ใช้แบบมือถือ
-const BMA_PAGE_H = 3400;        // สูงกว่าทั้งหน้าสถานี หน้าจึงไม่เลื่อนและแถบเมนูไม่ปักหมุด
-const HIST_TOP_PAD = 6;         // เผื่อขอบเหนือแถบหัวข้อ
-const histMode = (box) => (box.clientWidth < HIST_MOBILE_BELOW ? "mobile" : "desktop");
 
 // สถานีที่แสดงเมื่อเปิดหน้า (จุดอื่นโหลดเมื่อกดปุ่มเท่านั้น)
 const START_STATION_ID = 39; // ปตร.คลองประเวศฯ-ลาดกระบัง
@@ -43,10 +26,8 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 let currentId = START_STATION_ID;
-let profileOn = false;   // กดแสดงแผนภาพทั้งคลองแล้ว
 
 const imgUrl = (id, t) => `${BMA}/StationDetail/CreateCrossection?id=${id}&_=${t}`;
-const stationUrl = (id, t) => `${BMA}/StationDetail?id=${id}&_=${t}`;
 const isGate = (s) => s.kind !== "จุดวัดระดับน้ำ";
 
 function renderCards() {
@@ -61,13 +42,9 @@ function renderCards() {
         <img alt="ภาพรูปตัดและระดับน้ำ ${esc(s.name)}" referrerpolicy="no-referrer">
         <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — แตะเพื่อลองใหม่</span>
       </button>
-      <div class="hist-frame" data-id="${s.id}">
-        <button class="btn graph-load hist-load" data-id="${s.id}">โหลดกราฟระดับน้ำย้อนหลัง</button>
-        <p class="hist-msg muted small">กำลังโหลดกราฟระดับน้ำย้อนหลังจาก สนน.…</p>
-      </div>
       <footer class="small">
         <span class="muted">ระดับน้ำและเกณฑ์อยู่ในภาพ (ม.รทก.)</span>
-        <a href="${BMA}/StationDetail?id=${s.id}" target="_blank" rel="noopener noreferrer">หน้าสถานี ↗</a>
+        <a href="${BMA}/StationDetail?id=${s.id}" target="_blank" rel="noopener noreferrer">ดูกราฟระดับน้ำย้อนหลังที่หน้า สนน. ↗</a>
       </footer>
     </article>`;
   }).join("");
@@ -77,13 +54,10 @@ function renderCards() {
        <span><b>${esc(s.name)}</b><small>${esc(s.kind)}</small></span></button>`).join("");
 }
 
-/* ---------- เลือกจุด: แสดงการ์ดของจุดนั้น แล้วโหลดภาพ + กราฟเฉพาะจุดนั้น ---------- */
+/* ---------- เลือกจุด: แสดงการ์ดของจุดนั้น แล้วโหลดภาพเฉพาะจุดนั้น ---------- */
 function select(id) {
   if (!STATIONS.some((s) => s.id === id)) return;
-  if (id !== currentId) unloadHist(currentId);   // ปิดกราฟของจุดเดิม ไม่ให้ยิง สนน. ค้างอยู่เบื้องหลัง
   currentId = id;
-  // ทิ้งรายการในคิวของจุดอื่นที่ยังไม่เริ่ม (ไม่ยิง สนน. เพิ่มโดยไม่จำเป็น)
-  queue.splice(0, queue.length, ...queue.filter((t) => wanted(t.key)));
   $$(".st-card").forEach((c) => (c.hidden = c.id !== `st-${id}`));
   $$(".stn-btn").forEach((b) => {
     const on = Number(b.dataset.id) === id;
@@ -97,8 +71,7 @@ function select(id) {
     }
   });
   markDist();
-  sizeHist($(`.hist-frame[data-id="${id}"]`));   // การ์ดเพิ่งแสดง → จัดขนาดกราฟที่เคยโหลดไว้
-  queueStation(id);
+  loadImg(id);
 }
 function step(dir) {
   const i = STATIONS.findIndex((s) => s.id === currentId);
@@ -107,159 +80,46 @@ function step(dir) {
 const markDist = () =>
   $$("#distMap .dm-stn").forEach((g) => g.classList.toggle("on", Number(g.dataset.id) === currentId));
 
-/* ---------- คิวโหลดจากเว็บ สนน. (ทีละรายการ) ----------
-   โหลดเฉพาะจุดที่เลือก (ภาพ → กราฟย้อนหลัง) และกราฟทั้งคลองเมื่อกดแสดงเท่านั้น
-   เว็บ สนน. (อยู่หลัง Cloudflare) บล็อกเมื่อเรียกถี่/พร้อมกันมาก จึงโหลดทีละรายการ และลองใหม่แบบเว้นระยะ:
-   - หน้า 403 เล็กมาก โหลดเสร็จเร็วผิดปกติ (หน้าจริงใช้หลายวินาที) → ถือว่าถูกปฏิเสธ
-   - รายการที่ถูกปฏิเสธ นำกลับเข้าคิวอีกครั้งหลัง 5 / 15 / 30 / 60 วินาที (ถ้ายังเป็นจุดที่เลือกอยู่)
-   - ภาพที่ยังไม่สำเร็จ แตะที่ภาพเพื่อลองใหม่ทันที */
-const FAST_FAIL_MS = 2000;
+/* ---------- ภาพรูปตัด/ประตูระบายน้ำ ----------
+   โหลดเฉพาะจุดที่เลือก ภาพที่โหลดแล้วไม่โหลดซ้ำจนถึงรอบรีเฟรช
+   โหลดไม่สำเร็จ (สนน./Cloudflare ปฏิเสธชั่วคราว) → ลองใหม่หลัง 5 / 15 / 30 / 60 วินาที ถ้ายังเป็นจุดที่เลือกอยู่
+   ครบแล้วยังไม่ได้ → แตะที่ภาพเพื่อลองใหม่ */
 const RETRY_DELAYS = [5000, 15000, 30000, 60000];
-const MAX_PARALLEL = 1;
-const TASK_TIMEOUT = 40000;
-const queue = [];
-const running = new Set();   // key ของรายการที่กำลังโหลด
-// โหลดเฉพาะของจุดที่เลือกอยู่ และกราฟทั้งคลอง (ถ้ากดแสดงแล้ว)
-const wanted = (key) => (key === "profile" ? profileOn : key === `img${currentId}` || key === `hist${currentId}`);
-
-// key ซ้ำในคิว/กำลังโหลด = ไม่เพิ่มซ้ำ; front = ขึ้นหน้าคิว (ถ้ามีอยู่แล้วก็ย้ายขึ้นหน้า)
-function enqueue(key, run, front = false) {
-  if (!wanted(key) || running.has(key)) return;
-  const i = queue.findIndex((t) => t.key === key);
-  if (i >= 0) { if (!front) return; queue.splice(i, 1); }
-  const task = { key, run };
-  if (front) queue.unshift(task); else queue.push(task);
-  pump();
-}
-function pump() {
-  while (queue.length && running.size < MAX_PARALLEL) {
-    const task = queue.shift();
-    running.add(task.key);
-    let finished = false;
-    const done = () => {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timer);
-      running.delete(task.key);
-      pump();
-    };
-    const timer = setTimeout(done, TASK_TIMEOUT);
-    try { task.run(done); } catch (err) { console.error(err); done(); }
-  }
-}
-function retryLater(key, run, tries) {
-  setTimeout(() => enqueue(key, run, true), RETRY_DELAYS[Math.min(tries, RETRY_DELAYS.length - 1)]);
-}
-
-// กราฟหลัก (MapLetLeaf)
-const profileState = { start: 0, tries: 0, done: null, expecting: false };
-function profileTask(done) {
-  profileState.start = Date.now();
-  profileState.done = done;
-  profileState.expecting = true;
-  guardScroll(15000);                     // หน้า สนน. ในกรอบอาจลากหน้าเราเลื่อนระหว่างโหลด
-  $("#frmProfile").submit();               // โหลดกราฟ MapLetLeaf ใหม่ใน iframe
-}
-/* หน้าของ สนน. ในกรอบมีสคริปต์โหลด languages/th.json วนไม่หยุด (~7 ครั้ง/วินาที ตลอดที่เปิดอยู่ วัด 1 ต.ค. 2569)
-   จึงปิดกรอบทันทีที่ไม่ได้ดู: เปลี่ยนจุด → ปิดกราฟของจุดเดิม, ซ่อนแท็บ → ปิดทุกกราฟ (กลับมาดูแล้วโหลดใหม่) */
-function unloadHist(id) {
-  const box = $(`.hist-frame[data-id="${id}"]`);
-  if (!box) return;
-  $("iframe", box)?.remove();
-  box.classList.remove("ready");
-  delete box.dataset.loaded;            // data-want คงไว้: กลับมาที่จุดนี้แล้วโหลดกราฟให้อีกครั้ง
-  box.histDone?.();                     // กำลังโหลดอยู่ → ปล่อยคิว ไม่ต้องรอหมดเวลา
-  box.histDone = null;
-}
-function unloadProfile() {
-  $(".frame-wrap").classList.remove("ready");
-  $("#bmaProfile").src = "about:blank";
-  profileState.expecting = false;
-  profileState.done?.();
-  profileState.done = null;
-}
-function showProfile() {
-  profileOn = true;
-  $(".frame-wrap").classList.remove("idle");
-  fitFrame();
-  profileState.tries = 0;
-  enqueue("profile", profileTask, true);
-}
-
-// ภาพรูปตัด/ประตูระบายน้ำ
-function imgTask(img) {
-  return (done) => {
-    if (img.dataset.state === "ok" || img.dataset.state === "loading") return done();   // ลองใหม่ซ้อน/โหลดแล้ว
-    const btn = img.closest(".img-btn");
-    img.dataset.state = "loading";
-    img.onload = () => { img.dataset.state = "ok"; img.dataset.tries = 0; done(); };
-    img.onerror = () => {
-      const tries = Number(img.dataset.tries || 0);
-      if (tries < RETRY_DELAYS.length) {
-        img.dataset.tries = tries + 1;
-        img.dataset.state = "retry";
-        retryLater(`img${btn.dataset.id}`, imgTask(img), tries);
-      } else {
-        img.dataset.state = "fail";
-        btn.classList.add("img-fail");
-      }
-      done();
-    };
-    img.src = imgUrl(btn.dataset.id, Date.now());
+const imgOf = (id) => $(`#st-${id} .img-btn img`);
+function loadImg(id, force = false) {
+  const img = imgOf(id);
+  if (!img || (!force && img.dataset.state)) return;   // โหลดอยู่/โหลดแล้ว/รอลองใหม่
+  const btn = img.closest(".img-btn");
+  btn.classList.remove("img-fail");
+  img.dataset.state = "loading";
+  img.onload = () => { img.dataset.state = "ok"; img.dataset.tries = 0; };
+  img.onerror = () => {
+    const tries = Number(img.dataset.tries || 0);
+    if (tries >= RETRY_DELAYS.length) {
+      img.dataset.state = "fail";
+      btn.classList.add("img-fail");
+      return;
+    }
+    img.dataset.tries = tries + 1;
+    img.dataset.state = "retry";
+    setTimeout(() => {
+      if (img.dataset.state !== "retry") return;          // รีเฟรช/แตะลองใหม่ไปแล้ว
+      if (id === currentId) loadImg(id, true);
+      else delete img.dataset.state;                       // ไม่ได้ดูจุดนี้แล้ว → โหลดเมื่อถูกเลือกอีกครั้ง
+    }, RETRY_DELAYS[tries]);
   };
-}
-// กราฟย้อนหลัง: ข้ามถ้าโหลดไปแล้ว (เช่น ลองใหม่ที่ค้างอยู่ หลังผู้ใช้กดกลับมาที่จุดนี้)
-const histTask = (id) => (done) => ($(`.hist-frame[data-id="${id}"]`)?.dataset.loaded ? done() : loadHist(id, done));
-// ภาพ → กราฟย้อนหลัง ของจุดที่เลือก (ส่วนที่โหลดไว้แล้วไม่โหลดซ้ำ จนถึงรอบรีเฟรช)
-// กราฟย้อนหลังโหลดเฉพาะจุดที่กดปุ่ม "โหลดกราฟ" แล้ว (data-want)
-function queueStation(id) {
-  const img = $(`#st-${id} .img-btn img`);
-  const box = $(`.hist-frame[data-id="${id}"]`);
-  if (img && (!img.dataset.state || img.dataset.state === "retry")) enqueue(`img${id}`, imgTask(img));
-  if (box && box.dataset.want && !box.dataset.loaded) enqueue(`hist${id}`, histTask(id));
+  img.src = imgUrl(id, Date.now());
 }
 
 let lastRefresh = 0;
 function refresh() {
   lastRefresh = Date.now();
-  // เริ่มคิวใหม่ (รายการที่กำลังโหลดอยู่ปล่อยให้เสร็จ) จุดอื่นจะโหลดใหม่เมื่อถูกเลือก
-  queue.length = 0;
-  $$(".img-btn").forEach((b) => b.classList.remove("img-fail"));
+  // ภาพทุกจุดถือว่าเก่า: จุดที่เลือกโหลดใหม่ตอนนี้ จุดอื่นโหลดใหม่เมื่อถูกเลือก
   $$(".img-btn img").forEach((img) => { if (img.dataset.state !== "loading") delete img.dataset.state; img.dataset.tries = 0; });
-  $$(".hist-frame").forEach((b) => { delete b.dataset.loaded; b.dataset.tries = 0; });
-  if (profileOn) { profileState.tries = 0; enqueue("profile", profileTask); }
-  queueStation(currentId);
+  loadImg(currentId);
   const d = new Date();
   const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
   $("#lastUpdate").textContent = `โหลดเมื่อ ${hm} น.`;
-}
-
-/* กราฟระดับน้ำคลองประเวศ (หน้า MapLetLeaf ของ สนน.) แบบล็อกไว้ ไม่มีแถบเลื่อน
-   เปิดหน้า สนน. ที่ความกว้างคงที่ในกรอบที่สูงพอทั้งหน้า (หน้าไม่ต้องเลื่อน แถบเมนูไม่ปักหมุด)
-   แล้วตัดเฉพาะช่องเลือกคลอง + กราฟ ย่อด้วย CSS ให้พอดีกล่อง
-   ตำแหน่งวัดจริงที่ความกว้าง 1460px (1 ต.ค. 2569): ช่องเลือกคลอง y≈1017, กราฟ x=345 y=1111 ขนาด 1110×600
-   — ถ้า สนน. ปรับหน้าเว็บ ต้องวัดใหม่ */
-// สนน. ดู User-Agent (detectmob ในหน้า MapLetLeaf): มือถือ/ไอแพด → กราฟแบบมือถือ
-// (แสดงทีละ 3 สถานี มีแถบเลื่อนในกราฟของ สนน. เอง) คอมพิวเตอร์ → กราฟเต็มทุกสถานี
-// หน้าเรา "ไม่ย่อ/ไม่เพิ่มแถบเลื่อน" แค่ตัดเฉพาะกราฟให้พอดีกล่องตามแบบที่ สนน. วาด
-const BMA_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|Windows Phone/i.test(navigator.userAgent);
-const PROFILE = BMA_MOBILE
-  // กว้าง 700px (1 ต.ค. 2569): กราฟ x=45 y=1250 ขนาด 610×600 → เผื่อขอบ 10px
-  // stretchY: กราฟแบบมือถือย่อแล้วเตี้ย จึงยืดความสูงเพิ่ม 20%
-  ? { pageW: 700, pageH: 3200, cropX: 35, cropY: 1240, viewW: 630, viewH: 620, stretchY: 1.2 }
-  // กว้าง 1460px: กราฟ x≈305–1415 (บางครั้ง 345–1455 ก่อนหน้า สนน. จัดวางใหม่) → เผื่อขอบทั้งสองแบบ
-  : { pageW: 1460, pageH: 4600, cropX: 280, cropY: 1009, viewW: 1190, viewH: 712, stretchY: 1 };
-// ย่อ/ขยายให้กราฟพอดีความกว้างกล่อง (ไม่มีแถบเลื่อนของหน้าเรา)
-function fitFrame() {
-  const wrap = $(".frame-wrap"), clip = $(".frame-clip"), f = $("#bmaProfile");
-  const s = wrap.clientWidth / PROFILE.viewW, sy = s * PROFILE.stretchY;
-  wrap.style.height = `${Math.round(PROFILE.viewH * sy)}px`;
-  // หน้าต่างตัดขนาดเท่าส่วนกราฟ → ส่วนอื่นของหน้า สนน. ไม่โผล่
-  clip.style.width = `${PROFILE.viewW * s}px`;
-  clip.style.height = `${PROFILE.viewH * sy}px`;
-  f.style.width = `${PROFILE.pageW}px`;
-  f.style.height = `${PROFILE.pageH}px`;
-  f.style.transform = `scale(${s}, ${sy}) translate(${-PROFILE.cropX}px, ${-PROFILE.cropY}px)`;
 }
 
 /* ---------- แผนผังระยะห่างระหว่างจุดวัดตามแนวคลอง ---------- */
@@ -359,173 +219,26 @@ function onDistPick(e) {
   $("#stations").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-/* ---------- กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ ---------- */
-function sizeHist(box) {
-  const f = box && $("iframe", box);
-  if (!f || !box.clientWidth) return;   // การ์ดที่ซ่อนอยู่ จัดขนาดตอนถูกเลือก
-  // ความกว้างการ์ดข้ามเกณฑ์มือถือ/จอใหญ่ → ต้องโหลดหน้า สนน. แบบใหม่
-  if (box.dataset.mode && box.dataset.mode !== histMode(box)) {
-    delete box.dataset.loaded;
-    if (Number(box.dataset.id) === currentId) queueStation(currentId);
-    return;
-  }
-  const L = HIST_LAYOUTS[box.dataset.mode || histMode(box)];
-  const st = STATIONS.find((s) => s.id === Number(box.dataset.id));
-  const s = box.clientWidth / L.viewW;               // ย่อ/ขยายให้พอดีการ์ด
-  const top = st[L.topKey] - HIST_TOP_PAD;
-  box.style.height = `${Math.round(L.viewH * s)}px`;
-  f.style.height = `${BMA_PAGE_H}px`;
-  f.style.transform = `scale(${s}) translate(${-L.cropX}px, ${-top}px)`;
-}
-/* หน้า สนน. ในกรอบ (โดยเฉพาะหน้าสถานี) ดึงโฟกัสเข้าไปในตัวเองหลังโหลด เบราว์เซอร์จึงเลื่อนหน้าเรา
-   ไปหากรอบนั้น → ถ้ากรอบดึงโฟกัส/หน้าเลื่อนเองโดยผู้ใช้ไม่ได้ทำ (ล้อเมาส์/นิ้ว/คีย์/คลิก)
-   ให้ดึงโฟกัสกลับและคืนตำแหน่งเลื่อนเดิม */
-let lastUserInput = 0, guardUntil = 0, stealAt = 0, stableY = 0;
-const userActive = () => Date.now() - lastUserInput < 800;
-["wheel", "touchstart", "keydown", "mousedown", "pointerdown"].forEach((ev) =>
-  window.addEventListener(ev, () => { lastUserInput = Date.now(); }, { passive: true, capture: true }));
-const autoScrollBlocked = () => !userActive() && (Date.now() < guardUntil || Date.now() - stealAt < 2000);
-window.addEventListener("scroll", () => {
-  if (autoScrollBlocked()) window.scrollTo(0, stableY);
-  else stableY = window.scrollY;
-}, { passive: true });
-// เมาส์อยู่บน "กรอบเดียวกับที่ได้โฟกัส" = ผู้ใช้กำลังใช้กราฟ/ช่องเลือกในกรอบนั้น ไม่ดึงโฟกัสกลับ
-// (ถ้าเมาส์ค้างอยู่บนกรอบอื่น เช่น กราฟหลัก แล้วกรอบกราฟย้อนหลังแย่งโฟกัส ยังต้องดึงกลับ)
-// ต้องวางเมาส์บนกรอบนั้นมาแล้วอย่างน้อย 1 วินาที — ถ้าหน้าเพิ่งเลื่อนจนกรอบมาอยู่ใต้เมาส์เองไม่นับ
-let hoveredFrame = null, hoverSince = 0;
-document.addEventListener("pointerover", (e) => {
-  const f = e.target.tagName === "IFRAME" ? e.target : null;
-  if (f !== hoveredFrame) { hoveredFrame = f; hoverSince = Date.now(); }
-}, true);
-document.addEventListener("pointerout", (e) => { if (e.target === hoveredFrame) hoveredFrame = null; }, true);
-function reclaimFocus() {
-  // เบราว์เซอร์อาจเลื่อนหน้า "หลัง" จากที่ดึงโฟกัสกลับแล้ว → 2 วินาทีหลังถูกแย่งโฟกัส คอยคืนตำแหน่งเลื่อน
-  if (Date.now() - stealAt < 2000 && !userActive() && Math.abs(window.scrollY - stableY) > 2) {
-    window.scrollTo(0, stableY);
-  }
-  // โฟกัสย้ายเข้าไปในกรอบ สนน. เอง (ผู้ใช้ไม่ได้คลิกกรอบ) → ดึงกลับ และคืนตำแหน่งเลื่อน
-  const a = document.activeElement;
-  const usingFrame = a === hoveredFrame && Date.now() - hoverSince > 1000 && Math.abs(window.scrollY - stableY) < 3;
-  if (a?.tagName !== "IFRAME" || usingFrame || userActive()) return;
-  stealAt = Date.now();
-  $("#focusSink").focus({ preventScroll: true });
-  if (Math.abs(window.scrollY - stableY) > 2) window.scrollTo(0, stableY);
-}
-window.addEventListener("blur", reclaimFocus);
-setInterval(reclaimFocus, 150);   // สำรอง เผื่อเบราว์เซอร์ไม่ยิง blur (เช็กถี่ หน้าจะได้ไม่กระตุกนาน)
-function guardScroll(ms) {
-  stableY = window.scrollY;
-  guardUntil = Date.now() + ms;
-}
-
-// โหลดกราฟย้อนหลังของสถานี (เรียกจากคิวเท่านั้น; done = แจ้งคิวว่าเสร็จ)
-function loadHist(id, done = () => {}) {
-  const box = $(`.hist-frame[data-id="${id}"]`);
-  if (!box) return done();
-  guardScroll(15000);
-  box.dataset.loaded = "1";
-  box.histDone = done;
-  box.dataset.mode = histMode(box);
-  const pageW = HIST_LAYOUTS[box.dataset.mode].pageW;
-  box.classList.remove("ready");
-  $("iframe", box)?.remove();
-  const f = document.createElement("iframe");
-  f.title = `กราฟระดับน้ำย้อนหลังจากสำนักการระบายน้ำ`;
-  f.scrolling = "no";
-  f.referrerPolicy = "no-referrer";
-  f.tabIndex = -1;
-  f.style.width = `${pageW}px`;
-  box.appendChild(f);
-  sizeHist(box);
-  const started = Date.now();
-  f.onload = () => {
-    // เสร็จเร็วผิดปกติ = ได้หน้า 403 ของ สนน. → กลับเข้าคิวอีกครั้งภายหลัง (สูงสุด 4 ครั้ง)
-    const tries = Number(box.dataset.tries || 0);
-    if (Date.now() - started < FAST_FAIL_MS && tries < RETRY_DELAYS.length) {
-      box.dataset.tries = tries + 1;
-      delete box.dataset.loaded;
-      retryLater(`hist${id}`, histTask(id), tries);
-      return done();
-    }
-    box.dataset.tries = 0;
-    // รอภาพในหน้า สนน. โหลดเสร็จ (ตำแหน่งกราฟจึงนิ่ง) แล้วขยับความกว้าง 1px ให้ Highcharts วาดใหม่
-    // ซ่อนกรอบไว้จนเสร็จ ผู้ชมจึงไม่เห็นหน้า สนน. ขยับ
-    setTimeout(() => { if (box.contains(f)) f.style.width = `${pageW + 1}px`; }, 1200);
-    setTimeout(() => {
-      if (box.contains(f)) { f.style.width = `${pageW}px`; box.classList.add("ready"); }
-      done();
-    }, 1500);
-  };
-  f.src = stationUrl(id, Date.now());
-}
-// แสดงกรอบเมื่อหน้า สนน. โหลดเสร็จ (ก่อนหน้านั้นเห็นข้อความกำลังโหลด)
-$("#bmaProfile").addEventListener("load", (e) => {
-  if (!profileState.start) return;
-  // load ของกรอบว่าง (about:blank) ตอนเปิดหน้า อาจมาถึงหลังเริ่มส่งฟอร์มแล้ว → ไม่นับ
-  // (กรอบว่างอ่านได้ ส่วนหน้า สนน. ต่างโดเมนอ่านไม่ได้ → เกิด error = เป็นหน้า สนน. จริง)
-  try { if (e.target.contentWindow.location.href === "about:blank") return; } catch { /* หน้า สนน. */ }
-  if (!profileState.expecting) {
-    // หน้าโหลดเองโดยเราไม่ได้สั่ง = ผู้ใช้คลิกจุดบนกราฟ แล้วหน้า สนน. พาไปหน้าสถานีในกรอบ
-    // (ห้ามจากภายนอกไม่ได้) → ซ่อนกรอบแล้วโหลดกราฟกลับมาทันที
-    $(".frame-wrap").classList.remove("ready");
-    $(".frame-msg").textContent = "กำลังโหลดกราฟระดับน้ำจาก สนน.…";
-    enqueue("profile", profileTask, true);
-    return;
-  }
-  profileState.expecting = false;
-  const done = profileState.done || (() => {});
-  profileState.done = null;
-  if (Date.now() - profileState.start < FAST_FAIL_MS) {
-    // ได้หน้า 403 → ซ่อนกรอบ (แสดงข้อความ) แล้วกลับเข้าคิวภายหลัง
-    // กราฟหลักลองใหม่ไปเรื่อย ๆ (ทุก 1 นาทีหลังครั้งที่ 5) ไม่ยอมแสดงหน้า 403 เป็นกราฟขาว
-    $(".frame-wrap").classList.remove("ready");
-    $(".frame-msg").textContent = profileState.tries < 2
-      ? "กำลังโหลดกราฟระดับน้ำจาก สนน.…"
-      : "สนน. ปฏิเสธการเชื่อมต่อชั่วคราว (มีคนเรียกข้อมูลถี่) — จะลองใหม่อัตโนมัติ";
-    retryLater("profile", profileTask, profileState.tries++);
-    return done();
-  }
-  profileState.tries = 0;
-  // กราฟ Highcharts ของ สนน. อาจวัดขนาดก่อนหน้าเว็บจัดวางเสร็จ จึงกว้างเกิน (ขวาโดนตัด)
-  // ขยับความกว้างกรอบ 1px ให้เกิด resize ภายใน แล้วกราฟจะวาดใหม่พอดีหน้า
-  const f = e.target;
-  setTimeout(() => { f.style.width = `${PROFILE.pageW + 1}px`; }, 500);
-  setTimeout(() => { f.style.width = `${PROFILE.pageW}px`; }, 700);
-  setTimeout(() => { $(".frame-wrap").classList.add("ready"); done(); }, 1000);
-});
-// จัดขนาดใหม่เฉพาะเมื่อ "ความกว้าง" เปลี่ยน — ใน Apps Script กรอบของ Google ปรับความสูงตามเนื้อหา
+// วาดแผนผังใหม่เฉพาะเมื่อ "ความกว้าง" เปลี่ยน — ใน Apps Script กรอบของ Google ปรับความสูงตามเนื้อหา
 // ซึ่งยิง resize ทุกครั้งที่ความสูงเปลี่ยน ถ้าวาดใหม่ทุกครั้งจะวนไม่จบ (หน้าค้าง)
 let rz, lastW = window.innerWidth;
 window.addEventListener("resize", () => {
   if (window.innerWidth === lastW) return;
   lastW = window.innerWidth;
   clearTimeout(rz);
-  rz = setTimeout(() => {
-    if (profileOn) fitFrame();
-    drawDistMap(); sizeHist($(`.hist-frame[data-id="${currentId}"]`));
-  }, 150);
+  rz = setTimeout(drawDistMap, 150);
 });
 
 $("#stnBar").addEventListener("click", (e) => {
   const b = e.target.closest(".stn-btn");
   if (b) select(Number(b.dataset.id));
 });
-$("#profileLoad").addEventListener("click", showProfile);
-$("#cards").addEventListener("click", (e) => {
-  const b = e.target.closest(".hist-load");
-  if (!b) return;
-  const box = b.closest(".hist-frame");
-  box.dataset.want = "1";
-  enqueue(`hist${b.dataset.id}`, histTask(Number(b.dataset.id)), true);
-});
 document.addEventListener("click", (e) => {
   const b = e.target.closest(".img-btn");
   const lb = $("#lightbox");
   if (b && b.classList.contains("img-fail")) {      // แตะภาพที่โหลดไม่สำเร็จ = ลองใหม่ทันที
-    const img = $("img", b);
-    b.classList.remove("img-fail");
-    img.dataset.tries = 0;
-    enqueue(`img${b.dataset.id}`, imgTask(img), true);
+    $("img", b).dataset.tries = 0;
+    loadImg(Number(b.dataset.id), true);
     return;
   }
   if (b && $("img", b).dataset.state === "ok") {
@@ -549,18 +262,9 @@ renderCards();
 drawDistMap();
 select(currentId);
 refresh();
-// รีเฟรชทุก 5 นาทีเฉพาะตอนเปิดดูหน้าอยู่ แท็บที่ซ่อนไว้ปิดกราฟทั้งหมด (ไม่ยิง สนน.) กลับมาดูแล้วค่อยโหลดใหม่
+// รีเฟรชทุก 5 นาทีเฉพาะตอนเปิดดูหน้าอยู่ (แท็บที่ซ่อนไว้ไม่ยิง สนน.) กลับมาดูแล้วค่อยโหลดใหม่
 const REFRESH_MS = 5 * 60e3;
 setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_MS);
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) {
-    queue.length = 0;
-    unloadHist(currentId);
-    if (profileOn) unloadProfile();
-  } else if (Date.now() - lastRefresh > REFRESH_MS) {
-    refresh();
-  } else {
-    if (profileOn) enqueue("profile", profileTask, true);
-    queueStation(currentId);
-  }
+  if (!document.hidden && Date.now() - lastRefresh > REFRESH_MS) refresh();
 });
