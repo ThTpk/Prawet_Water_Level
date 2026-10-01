@@ -24,8 +24,8 @@ const STATIONS = [
    - โหลดเฉพาะสถานีที่กำลังแสดง (สนน. บล็อกชั่วคราวถ้าโหลดหน้าสถานีพร้อมกันหลายหน้า) */
 const BMA_PAGE_W = 1180;   // หน้า สนน. กว้างนี้: แถบเมนู 260 + เนื้อหา 920 (คอลัมน์เรียงซ้อนกัน)
 const BMA_PAGE_H = 3400;   // สูงกว่าทั้งหน้าสถานี หน้าจึงไม่เลื่อนและแถบเมนูไม่ปักหมุด
-const HIST_CROP_X = 322;   // แถบหัวข้อเริ่มที่ x≈340, กราฟ x≈345 → ตัดซ้ายออก
-const HIST_VIEW_W = 872;   // กว้างพอดีแถบหัวข้อ + กราฟ (830px) + ขอบ
+const HIST_CROP_X = 300;   // แถบหัวข้อเริ่มที่ x≈340, กราฟ x≈345 → ตัดซ้ายออก (เผื่อขอบ)
+const HIST_VIEW_W = 900;   // กว้างพอดีแถบหัวข้อ + กราฟ (830px) + ขอบ
 const HIST_TOP_PAD = 6;    // เผื่อขอบเหนือแถบหัวข้อ
 const HIST_VIEW_H = 312;   // แถบหัวข้อ (47px) + กราฟ (250px) + ขอบ
 
@@ -113,7 +113,7 @@ function markCurrent() {
 let scrollT;
 function onTrackScroll() {
   // ระหว่างโหลดกราฟ สนน. ถ้าแถบเลื่อนขยับเองโดยผู้ใช้ไม่ได้ทำ ให้กลับไปสถานีเดิม
-  if (Date.now() < guardUntil && Date.now() - lastUserInput > 800) {
+  if (autoScrollBlocked()) {
     const card = $(`#st-${currentId}`), track = $("#cards");
     if (card && Math.abs(track.scrollLeft - (card.offsetLeft - track.offsetLeft)) > 2) goTo(currentId, false);
     return;
@@ -130,6 +130,7 @@ function onTrackScroll() {
 
 function refresh() {
   const t = Date.now();
+  guardScroll(15000);                     // หน้า สนน. ในกรอบอาจลากหน้าเราเลื่อนระหว่างโหลด
   $("#frmProfile").submit();               // โหลดกราฟ MapLetLeaf ใหม่ใน iframe
   $$(".img-btn").forEach((b) => b.classList.remove("img-fail"));
   if (!$("#cards").children.length) renderCards(t);
@@ -143,23 +144,25 @@ function refresh() {
   $("#lastUpdate").textContent = `โหลดเมื่อ ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")} น.`;
 }
 
-/* ซ่อนแถบเมนูซ้ายของเว็บ สนน. ในกรอบ
-   iframe ต่างโดเมน สั่งกดปุ่มย่อเมนูของ สนน. ไม่ได้ จึงขยาย iframe ให้กว้างขึ้นเท่าแถบเมนู
-   แล้วเลื่อนไปทางซ้ายให้แถบเมนูพ้นกรอบแทน
-   (ธีมของ สนน.: แถบเมนูกว้าง 260px และจะซ่อนเองเมื่อหน้าแคบกว่า 769px) */
-const BMA_SIDEBAR_PX = 260;
-const BMA_SMALL_BREAK_PX = 769;
-let showSidebar = false;
+/* กราฟระดับน้ำคลองประเวศ (หน้า MapLetLeaf ของ สนน.) แบบล็อกไว้ ไม่มีแถบเลื่อน
+   เปิดหน้า สนน. ที่ความกว้างคงที่ในกรอบที่สูงพอทั้งหน้า (หน้าไม่ต้องเลื่อน แถบเมนูไม่ปักหมุด)
+   แล้วตัดเฉพาะช่องเลือกคลอง + กราฟ ย่อด้วย CSS ให้พอดีกล่อง
+   ตำแหน่งวัดจริงที่ความกว้าง 1460px (1 ต.ค. 2569): ช่องเลือกคลอง y≈1017, กราฟ x=345 y=1111 ขนาด 1110×600
+   — ถ้า สนน. ปรับหน้าเว็บ ต้องวัดใหม่ */
+const PROFILE_PAGE_W = 1460;
+const PROFILE_PAGE_H = 4600;  // สูงกว่าทั้งหน้า MapLetLeaf
+const PROFILE_CROP_X = 315;
+const PROFILE_CROP_Y = 1009;
+const PROFILE_VIEW_W = 1150;
+const PROFILE_VIEW_H = 712;
 
-// ใช้ได้ทั้งกรอบกราฟหลักและกรอบในหน้าต่างกราฟย้อนหลัง
-function cropSidebar(wrap, f, hide, extra = 0) {
-  const w = wrap.clientWidth;
-  const crop = hide && w + BMA_SIDEBAR_PX >= BMA_SMALL_BREAK_PX;
-  f.style.width = `${(crop ? w + BMA_SIDEBAR_PX : w) + extra}px`;
-  f.style.marginLeft = crop ? `-${BMA_SIDEBAR_PX}px` : "0";
-}
-function fitFrame(extra = 0) {
-  cropSidebar($(".frame-wrap"), $("#bmaProfile"), !showSidebar, extra);
+function fitFrame() {
+  const wrap = $(".frame-wrap"), f = $("#bmaProfile");
+  const s = wrap.clientWidth / PROFILE_VIEW_W;
+  wrap.style.height = `${Math.round(PROFILE_VIEW_H * s)}px`;
+  f.style.width = `${PROFILE_PAGE_W}px`;
+  f.style.height = `${PROFILE_PAGE_H}px`;
+  f.style.transform = `scale(${s}) translate(${-PROFILE_CROP_X}px, ${-PROFILE_CROP_Y}px)`;
 }
 
 /* ---------- แผนผังระยะห่างระหว่างจุดวัดตามแนวคลอง ---------- */
@@ -234,18 +237,33 @@ function sizeHist(box) {
   f.style.height = `${BMA_PAGE_H}px`;
   f.style.transform = `scale(${s}) translate(${-HIST_CROP_X}px, ${-top}px)`;
 }
-/* หน้าสถานีของ สนน. ในกรอบกราฟย้อนหลังมีการโฟกัส/เลื่อนบางอย่างระหว่างโหลด ซึ่งลากหน้าเราลงไปด้วย
-   ระหว่างโหลด จึงคืนตำแหน่งเลื่อนเดิม ถ้าการเลื่อนนั้นไม่ได้มาจากผู้ใช้ (ล้อเมาส์/นิ้ว/คีย์/คลิก) */
-let lastUserInput = 0, guardUntil = 0, guardY = 0;
-["wheel", "touchstart", "keydown", "mousedown"].forEach((ev) =>
+/* หน้า สนน. ในกรอบ (โดยเฉพาะหน้าสถานี) ดึงโฟกัสเข้าไปในตัวเองหลังโหลด เบราว์เซอร์จึงเลื่อนหน้าเรา
+   ไปหากรอบนั้น → ถ้ากรอบดึงโฟกัส/หน้าเลื่อนเองโดยผู้ใช้ไม่ได้ทำ (ล้อเมาส์/นิ้ว/คีย์/คลิก)
+   ให้ดึงโฟกัสกลับและคืนตำแหน่งเลื่อนเดิม */
+let lastUserInput = 0, guardUntil = 0, stealAt = 0, stableY = 0;
+const userActive = () => Date.now() - lastUserInput < 800;
+["wheel", "touchstart", "keydown", "mousedown", "pointerdown"].forEach((ev) =>
   window.addEventListener(ev, () => { lastUserInput = Date.now(); }, { passive: true, capture: true }));
+const autoScrollBlocked = () => !userActive() && (Date.now() < guardUntil || Date.now() - stealAt < 2000);
 window.addEventListener("scroll", () => {
-  const now = Date.now();
-  if (now < guardUntil && now - lastUserInput > 800) window.scrollTo(0, guardY);
-  else guardY = window.scrollY;
+  if (autoScrollBlocked()) window.scrollTo(0, stableY);
+  else stableY = window.scrollY;
 }, { passive: true });
+// เมาส์อยู่บนกรอบ สนน. = ผู้ใช้กำลังใช้กราฟ/ช่องเลือกในกรอบ ไม่ดึงโฟกัสกลับ
+let pointerInFrame = false;
+document.addEventListener("pointerover", (e) => { pointerInFrame = e.target.tagName === "IFRAME"; }, true);
+document.addEventListener("pointerout", (e) => { if (e.target.tagName === "IFRAME") pointerInFrame = false; }, true);
+function reclaimFocus() {
+  // โฟกัสย้ายเข้าไปในกรอบ สนน. เอง (ผู้ใช้ไม่ได้คลิกกรอบ) → ดึงกลับ และคืนตำแหน่งเลื่อน
+  if (pointerInFrame || userActive() || document.activeElement?.tagName !== "IFRAME") return;
+  stealAt = Date.now();
+  $("#focusSink").focus({ preventScroll: true });
+  if (Math.abs(window.scrollY - stableY) > 2) window.scrollTo(0, stableY);
+}
+window.addEventListener("blur", reclaimFocus);
+setInterval(reclaimFocus, 500);   // สำรอง เผื่อเบราว์เซอร์ไม่ยิง blur
 function guardScroll(ms) {
-  guardY = window.scrollY;
+  stableY = window.scrollY;
   guardUntil = Date.now() + ms;
 }
 
@@ -275,16 +293,9 @@ function loadHist(id, force = false) {
   };
   f.src = stationUrl(id, Date.now());
 }
-// กราฟ Highcharts ของ สนน. วัดขนาดก่อนหน้าเว็บจัดวางเสร็จเมื่ออยู่ใน iframe จึงกว้างเกินกรอบ
-// ขยับความกว้าง iframe 1px หลังโหลด เพื่อให้เกิด resize ภายใน แล้วกราฟจะวาดใหม่ให้พอดี
+// แสดงกรอบเมื่อหน้า สนน. โหลดเสร็จ (ก่อนหน้านั้นเห็นข้อความกำลังโหลด)
 $("#bmaProfile").addEventListener("load", () => {
-  setTimeout(() => { fitFrame(1); setTimeout(() => fitFrame(0), 150); }, 600);
-});
-$("#btnSidebar").addEventListener("click", (e) => {
-  showSidebar = !showSidebar;
-  e.currentTarget.textContent = showSidebar ? "ซ่อนเมนู สนน." : "แสดงเมนู สนน.";
-  e.currentTarget.setAttribute("aria-pressed", String(showSidebar));
-  fitFrame();
+  setTimeout(() => $(".frame-wrap").classList.add("ready"), 800);
 });
 // จัดขนาดใหม่เฉพาะเมื่อ "ความกว้าง" เปลี่ยน — ใน Apps Script กรอบของ Google ปรับความสูงตามเนื้อหา
 // ซึ่งยิง resize ทุกครั้งที่ความสูงเปลี่ยน ถ้าวาดใหม่ทุกครั้งจะวนไม่จบ (หน้าค้าง)

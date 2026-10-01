@@ -158,11 +158,14 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .stale { color: var(--crit); font-weight: 600; }
 
 /* ---------- iframe (GitHub Pages) ---------- */
-.frame-wrap { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
-#bmaProfile { display: block; width: 100%; max-width: none; height: 760px; border: 0; }
+.frame-wrap { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; min-height: 200px; }
+/* หน้า สนน. ทั้งหน้าในกรอบ ย่อ/ตัดด้วย transform ใน pages.js (fitFrame) */
+#bmaProfile { position: absolute; left: 0; top: 0; border: 0; max-width: none; transform-origin: 0 0; opacity: 0; transition: opacity .3s; }
+.frame-wrap.ready #bmaProfile { opacity: 1; }
+.frame-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; }
+.frame-wrap.ready .frame-msg { display: none; }
 .btn.ghost { background: transparent; color: var(--accent); }
 .btn.small { padding: 3px 10px; font-size: 13px; }
-@media (max-width: 640px) { #bmaProfile { height: 640px; } }
 .img-btn { position: relative; }
 .img-msg { display: none; position: absolute; inset: 0; place-items: center; padding: 16px; color: var(--ink-2); font-size: 13px; text-align: center; }
 .img-fail img { visibility: hidden; }
@@ -244,3 +247,6 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
   h1 { font-size: 17px; }
   .panel { padding: 14px; }
 }
+
+/* รับโฟกัสคืนจากกรอบ สนน. โดยไม่ทำให้หน้าเลื่อน */
+.focus-sink { position: fixed; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; outline: none; }
