@@ -58,7 +58,7 @@ function renderCards(t) {
       </header>
       <button class="img-btn" data-id="${s.id}" data-cap="${esc(s.name)}" aria-label="ขยายภาพ ${esc(s.name)}">
         <img src="${imgUrl(s.id, t)}" alt="ภาพรูปตัดและระดับน้ำ ${esc(s.name)}" loading="lazy"
-             onerror="this.closest('.img-btn').classList.add('img-fail')">
+             onerror="imgRetry(this)" onload="this.dataset.tries = 0">
         <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — กดโหลดใหม่ หรือเปิดหน้าสถานี</span>
       </button>
       <div class="hist-frame" data-id="${s.id}">
@@ -113,8 +113,9 @@ function markCurrent() {
   $("#carPos").textContent = `${vis.indexOf(currentId) + 1} / ${vis.length}`;
   $$("#distMap .dm-stn").forEach((g) => g.classList.toggle("on", Number(g.dataset.id) === currentId));
   // โหลดกราฟย้อนหลังเฉพาะสถานีที่แสดง (หน่วงเล็กน้อย เผื่อกำลังกดเลื่อนผ่านหลายสถานี)
+  // และรอให้กราฟหลักโหลดเสร็จก่อน ไม่ยิงเว็บ สนน. พร้อมกันหลายหน้า
   clearTimeout(markCurrent.t);
-  markCurrent.t = setTimeout(() => loadHist(currentId), 400);
+  markCurrent.t = setTimeout(() => afterProfile(() => loadHist(currentId)), 400);
 }
 // ปัดด้วยนิ้ว/ทัชแพด: อัปเดตสถานีปัจจุบันตามการ์ดที่อยู่กลางกรอบ
 let scrollT;
@@ -135,17 +136,54 @@ function onTrackScroll() {
   }, 80);
 }
 
-function refresh() {
-  const t = Date.now();
+/* ---------- โหลดจากเว็บ สนน. แบบไม่ยิงพร้อมกัน + ลองใหม่เมื่อถูกปฏิเสธ ----------
+   เว็บ สนน. (IIS) ตอบ 403 ชั่วคราวเมื่อเบราว์เซอร์เดียวขอพร้อมกันมากเกินไป (หายเองในไม่กี่วินาที)
+   - กราฟหลักโหลดก่อน กราฟย้อนหลังรอจนกราฟหลักเสร็จ
+   - หน้า 403 เล็กมาก โหลดเสร็จเร็วผิดปกติ (หน้าจริงใช้หลายวินาที) → ถือว่าถูกปฏิเสธ แล้วลองใหม่
+   - ภาพที่โหลดไม่สำเร็จ ลองใหม่ 3 ครั้ง (5, 10, 20 วินาที) */
+const FAST_FAIL_MS = 2000;
+const RETRY_DELAYS = [5000, 10000, 20000];
+const pageStart = Date.now();
+const profileState = { start: 0, tries: 0, done: false, waiters: [] };
+
+function imgRetry(img) {
+  const tries = Number(img.dataset.tries || 0);
+  if (tries >= RETRY_DELAYS.length) { img.closest(".img-btn").classList.add("img-fail"); return; }
+  img.dataset.tries = tries + 1;
+  setTimeout(() => { img.src = imgUrl(img.closest(".img-btn").dataset.id, Date.now()); }, RETRY_DELAYS[tries]);
+}
+function loadProfile() {
+  profileState.start = Date.now();
+  profileState.done = false;
   guardScroll(15000);                     // หน้า สนน. ในกรอบอาจลากหน้าเราเลื่อนระหว่างโหลด
   $("#frmProfile").submit();               // โหลดกราฟ MapLetLeaf ใหม่ใน iframe
+}
+function profileDone() {
+  profileState.done = true;
+  profileState.tries = 0;
+  const w = profileState.waiters.splice(0);
+  setTimeout(() => w.forEach((fn) => fn()), 1500);  // เว้นจังหวะก่อนโหลดหน้าถัดไป
+}
+// เรียก fn เมื่อกราฟหลักโหลดเสร็จ (หรือรอเกิน 25 วินาทีแล้วก็ไปต่อ)
+function afterProfile(fn) {
+  if (profileState.done || Date.now() - pageStart > 25000) return fn();
+  profileState.waiters.push(fn);
+  setTimeout(() => {
+    const i = profileState.waiters.indexOf(fn);
+    if (i >= 0) { profileState.waiters.splice(i, 1); fn(); }
+  }, 25000 - (Date.now() - pageStart));
+}
+
+function refresh() {
+  const t = Date.now();
+  loadProfile();
   $$(".img-btn").forEach((b) => b.classList.remove("img-fail"));
   if (!$("#cards").children.length) renderCards(t);
   else {
-    $$(".img-btn img").forEach((img) => (img.src = imgUrl(img.closest(".img-btn").dataset.id, t)));
-    // กราฟย้อนหลัง: ให้สถานีอื่นโหลดใหม่เมื่อเลื่อนไปถึง ส่วนสถานีที่แสดงอยู่โหลดใหม่ทันที
+    $$(".img-btn img").forEach((img) => { img.dataset.tries = 0; img.src = imgUrl(img.closest(".img-btn").dataset.id, t); });
+    // กราฟย้อนหลัง: ให้สถานีอื่นโหลดใหม่เมื่อเลื่อนไปถึง ส่วนสถานีที่แสดงอยู่โหลดใหม่หลังกราฟหลักเสร็จ
     $$(".hist-frame").forEach((b) => delete b.dataset.loaded);
-    loadHist(currentId, true);
+    afterProfile(() => loadHist(currentId, true));
   }
   const d = new Date();
   const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -360,7 +398,16 @@ function loadHist(id, force = false) {
   f.style.width = `${pageW}px`;
   box.appendChild(f);
   sizeHist(box);
+  const started = Date.now();
   f.onload = () => {
+    // เสร็จเร็วผิดปกติ = ได้หน้า 403 ของ สนน. → ลองใหม่ (สูงสุด 3 ครั้ง)
+    const tries = Number(box.dataset.tries || 0);
+    if (Date.now() - started < FAST_FAIL_MS && tries < RETRY_DELAYS.length) {
+      box.dataset.tries = tries + 1;
+      setTimeout(() => { if (box.contains(f)) loadHist(id, true); }, RETRY_DELAYS[tries]);
+      return;
+    }
+    box.dataset.tries = 0;
     // รอภาพในหน้า สนน. โหลดเสร็จ (ตำแหน่งกราฟจึงนิ่ง) แล้วขยับความกว้าง 1px ให้ Highcharts วาดใหม่
     // ซ่อนกรอบไว้จนเสร็จ ผู้ชมจึงไม่เห็นหน้า สนน. ขยับ
     setTimeout(() => { if (box.contains(f)) f.style.width = `${pageW + 1}px`; }, 1200);
@@ -374,7 +421,15 @@ function loadHist(id, force = false) {
 }
 // แสดงกรอบเมื่อหน้า สนน. โหลดเสร็จ (ก่อนหน้านั้นเห็นข้อความกำลังโหลด)
 $("#bmaProfile").addEventListener("load", () => {
+  if (!profileState.start) return;                 // load ของกรอบว่างตอนเปิดหน้า
+  if (Date.now() - profileState.start < FAST_FAIL_MS && profileState.tries < RETRY_DELAYS.length) {
+    // ได้หน้า 403 → ซ่อนกรอบ (แสดงข้อความกำลังโหลด) แล้วลองใหม่
+    $(".frame-wrap").classList.remove("ready");
+    setTimeout(loadProfile, RETRY_DELAYS[profileState.tries++]);
+    return;
+  }
   setTimeout(() => $(".frame-wrap").classList.add("ready"), 800);
+  profileDone();
 });
 // จัดขนาดใหม่เฉพาะเมื่อ "ความกว้าง" เปลี่ยน — ใน Apps Script กรอบของ Google ปรับความสูงตามเนื้อหา
 // ซึ่งยิง resize ทุกครั้งที่ความสูงเปลี่ยน ถ้าวาดใหม่ทุกครั้งจะวนไม่จบ (หน้าค้าง)
