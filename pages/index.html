@@ -9,8 +9,6 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- ที่รับโฟกัสคืนเมื่อกรอบของ สนน. ดึงโฟกัสไปเอง (ดู pages.js) -->
-<span id="focusSink" tabindex="-1" class="focus-sink"></span>
 <header class="top">
   <div class="brand">
     <div class="logo" aria-hidden="true">
@@ -31,47 +29,34 @@
   <section id="stations">
     <div class="section-head">
       <h2>ประตูระบายน้ำและจุดวัดระดับน้ำ</h2>
-      <span class="muted small">เรียงจากตะวันตก → ตะวันออก · กดชื่อจุดเพื่อดูภาพ · กราฟโหลดเมื่อกดปุ่ม "โหลดกราฟ"</span>
+      <span class="muted small">เรียงจากตะวันตก → ตะวันออก · กดชื่อจุดเพื่อโหลดภาพของจุดนั้น</span>
     </div>
     <div class="stn-bar" id="stnBar" role="tablist" aria-label="เลือกจุด (ตะวันตก → ตะวันออก)"></div>
     <div class="stn-view" id="cards"></div>
   </section>
 
-  <!-- กราฟระดับน้ำทั้งคลอง จากหน้า MapLetLeaf ของ สนน. (ฝังด้วย iframe) — โหลดเมื่อกดปุ่มในกรอบเท่านั้น -->
+  <!-- กราฟระดับน้ำทั้งคลอง: ไม่ฝังหน้า สนน. (หน้าของ สนน. ยิงคำขอวนไม่หยุด → โดน Cloudflare บล็อก)
+       ให้เปิดที่เว็บ สนน. ในแท็บใหม่แทน -->
   <section class="panel hero">
     <div class="panel-head">
       <div>
-        <h2>แผนภาพระดับน้ำคลองประเวศบุรีรมย์</h2>
-        <p class="muted small">กราฟจากหน้า "ข้อมูลระดับน้ำ" ของ สนน. โดยตรง · ชี้ที่จุดบนกราฟเพื่อดูค่า</p>
+        <h2>ระยะห่างระหว่างจุดวัดตามแนวคลองประเวศบุรีรมย์</h2>
+        <p class="muted small">ระยะโดยประมาณ (เส้นตรงระหว่างพิกัดสถานี) · รวม ~28.3 กม. · คลิกจุดเพื่อดูภาพ</p>
       </div>
       <div class="head-right">
-        <a class="small" href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">เปิดเว็บ สนน. ↗</a>
+        <!-- หน้า MapLetLeaf ต้อง POST selriver=30_1 (คลองประเวศบุรีรมย์) -->
+        <form method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf" target="_blank">
+          <input type="hidden" name="selriver" value="30_1">
+          <button class="btn small" type="submit">ดูกราฟระดับน้ำทั้งคลองที่เว็บ สนน. ↗</button>
+        </form>
       </div>
-    </div>
-    <!-- ฟอร์มซ่อน: หน้า MapLetLeaf ต้อง POST selriver=30_1 (คลองประเวศบุรีรมย์) -->
-    <form id="frmProfile" method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf" target="bmaProfile" hidden>
-      <input type="hidden" name="selriver" value="30_1">
-    </form>
-    <div class="frame-wrap idle">
-      <button class="btn graph-load" id="profileLoad">โหลดกราฟระดับน้ำทั้งคลอง</button>
-      <p class="frame-msg muted small">กำลังโหลดกราฟระดับน้ำจาก สนน.…</p>
-      <!-- frame-clip = หน้าต่างตัดเฉพาะส่วนกราฟ -->
-      <div class="frame-clip">
-        <iframe name="bmaProfile" id="bmaProfile" title="แผนภาพระดับน้ำคลองประเวศ จากสำนักการระบายน้ำ"
-                loading="eager" scrolling="no" tabindex="-1"></iframe>
-      </div>
-    </div>
-    <!-- กราฟของ สนน. วางจุดห่างเท่ากัน จึงแสดงระยะจริงแยกไว้ใต้กราฟ -->
-    <div class="dist-head">
-      <h3>ระยะห่างระหว่างจุดวัดตามแนวคลอง</h3>
-      <span class="muted small">ระยะโดยประมาณ (เส้นตรงระหว่างพิกัดสถานี) · รวม ~28.3 กม. · คลิกจุดเพื่อดูภาพและกราฟ</span>
     </div>
     <div class="dist-map" id="distMap"></div>
   </section>
 
   <footer class="foot muted small">
     ที่มา: <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">weather.bangkok.go.th/water</a>
-    · โหลดสดจากเว็บ สนน. เฉพาะจุดที่เลือก · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
+    · ภาพโหลดสดจากเว็บ สนน. เฉพาะจุดที่เลือก · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
   </footer>
 </main>
 
