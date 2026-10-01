@@ -255,11 +255,11 @@ const PROFILE_CROP_X = 280;   // กราฟอยู่ราว x≈305–141
 const PROFILE_CROP_Y = 1009;
 const PROFILE_VIEW_W = 1190;
 const PROFILE_VIEW_H = 712;
-// มือถือ (จอแคบ หรือมือถือแนวนอน): กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาด้วยแถบ #profScroll
-// ไอแพด/คอมพิวเตอร์: ย่อพอดีความกว้างกล่อง
+// มือถือ/ไอแพด (จอสัมผัส หรือจอแคบ) และกล่องแคบกว่ากราฟ: กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาด้วยแถบ #profScroll
+// คอมพิวเตอร์: ย่อพอดีความกว้างกล่อง
 function profileScrollMode() {
-  const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600;
-  return window.innerWidth < 760 || phone;
+  const touch = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 1;
+  return (touch || window.innerWidth < 760) && $(".frame-wrap").clientWidth < PROFILE_VIEW_W;
 }
 function fitFrame() {
   const wrap = $(".frame-wrap"), clip = $(".frame-clip"), f = $("#bmaProfile");

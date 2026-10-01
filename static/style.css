@@ -299,8 +299,8 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
   .top h1 { font-size: 16px; }
   .top .sub { font-size: 12px; }
 }
-/* มือถือแนวนอน (จอเตี้ย): หัวเว็บไม่ลอยค้างด้านบน */
-@media (max-height: 500px) {
+/* มือถือแนวนอน (จอเตี้ย) และไอแพด/จอสัมผัส: หัวเว็บไม่ลอยค้างด้านบน */
+@media (max-height: 500px), (pointer: coarse) {
   .top { position: static; }
 }
 

@@ -307,8 +307,8 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
   .top h1 { font-size: 16px; }
   .top .sub { font-size: 12px; }
 }
-/* มือถือแนวนอน (จอเตี้ย): หัวเว็บไม่ลอยค้างด้านบน */
-@media (max-height: 500px) {
+/* มือถือแนวนอน (จอเตี้ย) และไอแพด/จอสัมผัส: หัวเว็บไม่ลอยค้างด้านบน */
+@media (max-height: 500px), (pointer: coarse) {
   .top { position: static; }
 }
 
@@ -664,11 +664,11 @@ const PROFILE_CROP_X = 280;   // กราฟอยู่ราว x≈305–141
 const PROFILE_CROP_Y = 1009;
 const PROFILE_VIEW_W = 1190;
 const PROFILE_VIEW_H = 712;
-// มือถือ (จอแคบ หรือมือถือแนวนอน): กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาด้วยแถบ #profScroll
-// ไอแพด/คอมพิวเตอร์: ย่อพอดีความกว้างกล่อง
+// มือถือ/ไอแพด (จอสัมผัส หรือจอแคบ) และกล่องแคบกว่ากราฟ: กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาด้วยแถบ #profScroll
+// คอมพิวเตอร์: ย่อพอดีความกว้างกล่อง
 function profileScrollMode() {
-  const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600;
-  return window.innerWidth < 760 || phone;
+  const touch = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 1;
+  return (touch || window.innerWidth < 760) && $(".frame-wrap").clientWidth < PROFILE_VIEW_W;
 }
 function fitFrame() {
   const wrap = $(".frame-wrap"), clip = $(".frame-clip"), f = $("#bmaProfile");
