@@ -55,7 +55,16 @@
         <button data-f="gate">เฉพาะประตูระบายน้ำ / สถานีสูบน้ำ</button>
       </div>
     </div>
-    <div class="cards" id="cards"></div>
+    <!-- ภาพรายจุดแบบเลื่อนซ้าย-ขวา (ทีละสถานี) -->
+    <div class="carousel" id="carousel" aria-roledescription="carousel" aria-label="ภาพประตูระบายน้ำและระดับน้ำรายจุด">
+      <button class="car-nav prev" id="carPrev" aria-label="สถานีก่อนหน้า (ทางตะวันตก)">‹</button>
+      <div class="car-track" id="cards" tabindex="0"></div>
+      <button class="car-nav next" id="carNext" aria-label="สถานีถัดไป (ทางตะวันออก)">›</button>
+    </div>
+    <div class="car-bar">
+      <span class="car-pos muted small" id="carPos"></span>
+      <div class="car-chips" id="carChips" role="tablist" aria-label="เลือกสถานี (ตะวันตก → ตะวันออก)"></div>
+    </div>
   </section>
 
   <footer class="foot muted small">

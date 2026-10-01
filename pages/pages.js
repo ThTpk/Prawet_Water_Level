@@ -17,10 +17,14 @@ const STATIONS = [
   { id: 65, name: "ค.ประเวศฯ-ถ.ร่วมพัฒนา", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง" },
 ];
 
+// สถานีที่แสดงเป็นภาพแรกเมื่อเปิดหน้า
+const START_STATION_ID = 39; // ปตร.คลองประเวศฯ-ลาดกระบัง
+
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 let filter = "all";
+let currentId = START_STATION_ID;
 
 const imgUrl = (id, t) => `${BMA}/StationDetail/CreateCrossection?id=${id}&_=${t}`;
 const stationUrl = (id, t) => `${BMA}/StationDetail?id=${id}&_=${t}`;
@@ -47,10 +51,59 @@ function renderCards(t) {
       </footer>
     </article>`;
   }).join("");
+  $("#carChips").innerHTML = STATIONS.map((s, i) =>
+    `<button class="chip" role="tab" data-id="${s.id}" data-gate="${s.kind !== "จุดวัดระดับน้ำ" ? 1 : 0}"
+             title="${esc(s.name)}">${i + 1}. ${esc(s.name)}</button>`).join("");
   applyFilter();
 }
 function applyFilter() {
-  $$(".st-card").forEach((c) => (c.hidden = filter === "gate" && c.dataset.gate !== "1"));
+  $$(".st-card, .chip").forEach((c) => (c.hidden = filter === "gate" && c.dataset.gate !== "1"));
+  const vis = visibleIds();
+  goTo(vis.includes(currentId) ? currentId : vis[0], false);
+}
+
+/* ---------- เลื่อนซ้าย-ขวาทีละสถานี ---------- */
+const visibleIds = () => $$(".st-card:not([hidden])").map((c) => Number(c.id.slice(3)));
+
+function goTo(id, smooth = true) {
+  const card = $(`#st-${id}`), track = $("#cards");
+  if (!card) return;
+  currentId = id;
+  track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: smooth ? "smooth" : "auto" });
+  markCurrent();
+}
+function step(dir) {
+  const vis = visibleIds();
+  const i = vis.indexOf(currentId);
+  goTo(vis[(i + dir + vis.length) % vis.length]);   // วนรอบเมื่อสุดปลาย
+}
+function markCurrent() {
+  const vis = visibleIds();
+  $$(".chip").forEach((c) => {
+    const on = Number(c.dataset.id) === currentId;
+    c.classList.toggle("on", on);
+    c.setAttribute("aria-selected", String(on));
+    if (on) {  // เลื่อนเฉพาะแถบชิป ไม่ให้ทั้งหน้ากระโดด
+      const bar = $("#carChips");
+      const left = c.offsetLeft - bar.offsetLeft;
+      if (left < bar.scrollLeft || left + c.offsetWidth > bar.scrollLeft + bar.clientWidth)
+        bar.scrollTo({ left: left - (bar.clientWidth - c.offsetWidth) / 2, behavior: "smooth" });
+    }
+  });
+  $$(".st-card").forEach((c) => c.setAttribute("aria-hidden", String(c.id !== `st-${currentId}`)));
+  $("#carPos").textContent = `${vis.indexOf(currentId) + 1} / ${vis.length}`;
+}
+// ปัดด้วยนิ้ว/ทัชแพด: อัปเดตสถานีปัจจุบันตามการ์ดที่อยู่กลางกรอบ
+let scrollT;
+function onTrackScroll() {
+  clearTimeout(scrollT);
+  scrollT = setTimeout(() => {
+    const track = $("#cards");
+    const mid = track.scrollLeft + track.clientWidth / 2;
+    const card = $$(".st-card:not([hidden])", track)
+      .find((c) => c.offsetLeft - track.offsetLeft <= mid && mid < c.offsetLeft - track.offsetLeft + c.offsetWidth);
+    if (card && Number(card.id.slice(3)) !== currentId) { currentId = Number(card.id.slice(3)); markCurrent(); }
+  }, 80);
 }
 
 function refresh() {
@@ -129,10 +182,20 @@ $("#btnSidebar").addEventListener("click", (e) => {
   fitFrame();
 });
 let rz;
-window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(fitFrame, 100); });
+window.addEventListener("resize", () => {
+  clearTimeout(rz);
+  rz = setTimeout(() => { fitFrame(); goTo(currentId, false); }, 100);
+});
 fitFrame();
 
 $("#btnRefresh").addEventListener("click", refresh);
+$("#carPrev").addEventListener("click", () => step(-1));
+$("#carNext").addEventListener("click", () => step(1));
+$("#cards").addEventListener("scroll", onTrackScroll, { passive: true });
+$("#carChips").addEventListener("click", (e) => {
+  const c = e.target.closest(".chip");
+  if (c) goTo(Number(c.dataset.id));
+});
 $$("#cardFilter button").forEach((b) => b.addEventListener("click", () => {
   $$("#cardFilter button").forEach((x) => x.classList.toggle("on", x === b));
   filter = b.dataset.f; applyFilter();
@@ -148,7 +211,13 @@ document.addEventListener("click", (e) => {
   } else if (e.target.closest("#lightbox")) lb.hidden = true;
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { $("#lightbox").hidden = true; closeHistory(); }
+  if (e.key === "Escape") { $("#lightbox").hidden = true; closeHistory(); return; }
+  // ลูกศรซ้าย/ขวา เปลี่ยนสถานี (เมื่อไม่ได้เปิดหน้าต่างหรือพิมพ์อยู่)
+  const busy = !$("#histModal").hidden || !$("#lightbox").hidden || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
+  if (!busy && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+    e.preventDefault();
+    step(e.key === "ArrowLeft" ? -1 : 1);
+  }
 });
 
 refresh();

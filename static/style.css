@@ -168,6 +168,40 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .img-fail img { visibility: hidden; }
 .img-fail .img-msg { display: grid; }
 
+/* ---------- ภาพรายจุดแบบเลื่อนซ้าย-ขวา ---------- */
+.carousel { position: relative; max-width: 920px; margin: 0 auto; }
+.car-track {
+  display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; overscroll-behavior-x: contain; border-radius: var(--radius); outline: none;
+}
+.car-track::-webkit-scrollbar { display: none; }
+.car-track .st-card { flex: 0 0 100%; scroll-snap-align: center; }
+.car-nav {
+  position: absolute; top: 45%; transform: translateY(-50%); z-index: 2;
+  width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink); font-size: 28px; line-height: 1; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,.25); display: grid; place-items: center; padding: 0 0 4px;
+}
+.car-nav:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.car-nav.prev { left: -62px; }
+.car-nav.next { right: -62px; }
+@media (max-width: 1060px) {
+  .car-nav.prev { left: 8px; }
+  .car-nav.next { right: 8px; }
+  .car-nav { background: color-mix(in srgb, var(--panel) 85%, transparent); }
+}
+.car-bar { max-width: 920px; margin: 10px auto 0; display: flex; gap: 12px; align-items: center; }
+.car-pos { flex: none; min-width: 44px; font-weight: 600; }
+.car-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; }
+.chip {
+  font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink-2);
+  border-radius: 999px; padding: 4px 12px;
+}
+.chip[hidden] { display: none; }
+.chip:hover { border-color: var(--accent); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
 /* ปุ่มและหน้าต่างกราฟระดับน้ำย้อนหลัง */
 .hist-row { padding: 12px 14px 0; }
 .hist-btn { width: 100%; }
