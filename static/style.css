@@ -168,6 +168,21 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .img-fail img { visibility: hidden; }
 .img-fail .img-msg { display: grid; }
 
+/* ปุ่มและหน้าต่างกราฟระดับน้ำย้อนหลัง */
+.hist-row { padding: 12px 14px 0; }
+.hist-btn { width: 100%; }
+.modal { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.6); display: grid; place-items: center; padding: 16px; }
+.modal[hidden] { display: none; }
+.modal-box {
+  width: min(1200px, 100%); height: min(940px, 100%); display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+}
+.modal-head { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 12px 16px 4px; flex-wrap: wrap; }
+.modal-note { margin: 0; padding: 0 16px 10px; }
+.modal-frame { flex: 1; min-height: 0; overflow: hidden; background: #fff; }
+/* ดันกรอบขึ้น 160px ให้แถบเมนูที่ สนน. ปักหมุดไว้ด้านบนพ้นขอบ (สูง ~124–160px ตามความยาวชื่อสถานี) */
+#histFrame { display: block; border: 0; height: calc(100% + 160px); margin-top: -160px; width: 100%; max-width: none; }
+
 /* ---------- lightbox ---------- */
 .lightbox { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.82); display: grid; place-items: center; padding: 16px; cursor: zoom-out; }
 .lightbox[hidden] { display: none; }

@@ -64,6 +64,22 @@
   </footer>
 </main>
 
+<div id="histModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="histTitle">
+  <div class="modal-box">
+    <header class="modal-head">
+      <h2 id="histTitle">กราฟระดับน้ำย้อนหลัง</h2>
+      <div class="head-right">
+        <a id="histLink" class="small" href="#" target="_blank" rel="noopener">เปิดหน้า สนน. ↗</a>
+        <button id="histClose" class="btn small" aria-label="ปิด">ปิด ✕</button>
+      </div>
+    </header>
+    <p class="muted small modal-note">หน้าสถานีของ สนน. (ข้อมูลย้อนหลัง ~2 วัน) — ถ้ากราฟไม่อยู่ในกรอบพอดี เลื่อนขึ้นลงในกรอบได้</p>
+    <div class="modal-frame">
+      <iframe id="histFrame" title="กราฟระดับน้ำย้อนหลังจากสำนักการระบายน้ำ"></iframe>
+    </div>
+  </div>
+</div>
+
 <div id="lightbox" class="lightbox" hidden>
   <figure><img alt=""><figcaption></figcaption></figure>
 </div>
