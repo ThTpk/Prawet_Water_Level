@@ -174,10 +174,11 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .frame-wrap.ready #bmaProfile { opacity: 1; }
 .frame-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; }
 .frame-wrap.ready .frame-msg { display: none; }
-/* มือถือ/ไอแพด: กราฟขนาดจริง เลื่อนซ้าย-ขวาด้วยแถบเลื่อนของเบราว์เซอร์ (pages.js fitFrame ใส่ .prof-scrolling ที่ body) */
+/* มือถือ: กราฟขนาดจริง เลื่อนซ้าย-ขวาด้วยแถบใต้กราฟ (pages.js fitFrame ใส่ .prof-scrolling ที่ body) */
 .prof-scroll { display: none; }
-.prof-scrolling .frame-wrap { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
-.prof-scrolling .prof-scroll { display: block; margin-top: 6px; }
+/* ไม่มีแถบเลื่อนในกล่องกราฟ เลื่อนด้วยแถบ #profScroll ใต้กราฟเท่านั้น (กล่องยัง overflow: hidden) */
+.prof-scrolling .prof-scroll { display: block; margin-top: 8px; }
+#profScroll { width: 100%; height: 28px; margin: 0; accent-color: var(--accent); }
 .rotate-hint { margin: 4px 0 0; color: var(--muted); }
 .rotate-hint::before { content: "⟳ "; }
 @media (orientation: landscape) { .rotate-hint { display: none; } }
@@ -362,9 +363,10 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
                 loading="eager" scrolling="no" tabindex="-1"></iframe>
       </div>
     </div>
-    <!-- มือถือ/ไอแพด: กราฟขนาดจริง เลื่อนซ้าย-ขวาด้วยแถบเลื่อนของเบราว์เซอร์ -->
+    <!-- มือถือ: กราฟขนาดจริง เลื่อนซ้าย-ขวาด้วยแถบนี้ (กล่องกราฟไม่มีแถบเลื่อนของตัวเอง) -->
     <div class="prof-scroll">
-      <p class="rotate-hint small">หมุนจอเป็นแนวนอนเพื่อดูกราฟได้กว้างขึ้น · เลื่อนซ้าย-ขวาเพื่อดูทั้งกราฟ</p>
+      <input type="range" id="profScroll" min="0" max="1000" value="0" aria-label="เลื่อนกราฟซ้าย-ขวา">
+      <p class="rotate-hint small">หมุนจอเป็นแนวนอนเพื่อดูกราฟได้กว้างขึ้น · ลากแถบด้านบนเพื่อเลื่อนกราฟซ้าย-ขวา</p>
     </div>
     <!-- กราฟของ สนน. วางจุดห่างเท่ากัน จึงแสดงระยะจริงแยกไว้ใต้กราฟ -->
     <div class="dist-head">
@@ -662,7 +664,7 @@ const PROFILE_CROP_X = 280;   // กราฟอยู่ราว x≈305–141
 const PROFILE_CROP_Y = 1009;
 const PROFILE_VIEW_W = 1190;
 const PROFILE_VIEW_H = 712;
-// มือถือ/ไอแพด (จอสัมผัส หรือจอแคบ) และกล่องแคบกว่ากราฟ: กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาด้วยแถบเลื่อนของเบราว์เซอร์
+// มือถือ/ไอแพด (จอสัมผัส หรือจอแคบ) และกล่องแคบกว่ากราฟ: กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาด้วยแถบ #profScroll
 // คอมพิวเตอร์: ย่อพอดีความกว้างกล่อง
 function profileScrollMode() {
   const touch = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 1;
@@ -681,7 +683,18 @@ function fitFrame() {
   f.style.height = `${PROFILE_PAGE_H}px`;
   f.style.transform = `scale(${s}) translate(${-PROFILE_CROP_X}px, ${-PROFILE_CROP_Y}px)`;
   if (!scroll) wrap.scrollLeft = 0;
+  syncProfScroll();
 }
+// แถบเลื่อน ↔ ตำแหน่งเลื่อนของกล่องกราฟ
+function syncProfScroll() {
+  const wrap = $(".frame-wrap"), max = wrap.scrollWidth - wrap.clientWidth;
+  $("#profScroll").value = max > 0 ? Math.round(wrap.scrollLeft / max * 1000) : 0;
+}
+$("#profScroll").addEventListener("input", (e) => {
+  const wrap = $(".frame-wrap");
+  wrap.scrollLeft = (wrap.scrollWidth - wrap.clientWidth) * e.target.value / 1000;
+});
+$(".frame-wrap").addEventListener("scroll", syncProfScroll, { passive: true });
 
 /* ---------- แผนผังระยะห่างระหว่างจุดวัดตามแนวคลอง ---------- */
 const svgEl = (n, a, p, txt) => {
