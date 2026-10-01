@@ -291,31 +291,18 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
   .foot { padding: 0 4px; }
 }
 
-/* ---------- ปุ่มโหลดใหม่แบบลอย (มือถือ) ---------- */
-.fab { display: none; }
+/* ---------- หัวเว็บบนมือถือ ---------- */
 @media (max-width: 760px) {
-  /* หัวเว็บเหลือแค่ชื่อ แถบโหลดใหม่ย้ายไปเป็นปุ่มลอย หน้าจอจึงแสดงเนื้อหาได้เต็มที่ */
+  /* หัวเว็บเหลือแค่ชื่อ หน้าจอจึงแสดงเนื้อหาได้เต็มที่ */
   .top-actions { display: none; }
   .top { position: static; flex-direction: row; padding: 8px 12px; }
   .top h1 { font-size: 16px; }
   .top .sub { font-size: 12px; }
-  .fab {
-    position: fixed; z-index: 300;
-    right: calc(14px + env(safe-area-inset-right));
-    bottom: calc(14px + env(safe-area-inset-bottom));
-    display: inline-flex; align-items: center; gap: 6px;
-    height: 46px; padding: 0 16px 0 13px; border: 0; border-radius: 999px;
-    background: var(--accent); color: #fff; font: inherit; font-size: 14px; font-weight: 600;
-    box-shadow: 0 4px 14px rgba(0,0,0,.35); cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .fab:active { transform: scale(.96); }
-  .fab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-  .fab.busy svg { animation: fab-spin .9s linear infinite; }
-  main { padding-bottom: 80px; }  /* เว้นที่ให้ปุ่มลอยไม่บังเนื้อหาท้ายหน้า */
 }
-@keyframes fab-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .fab.busy svg { animation: none; } }
+/* มือถือแนวนอน (จอเตี้ย): หัวเว็บไม่ลอยค้างด้านบน */
+@media (max-height: 500px) {
+  .top { position: static; }
+}
 
 /* ภาพที่ยังรอคิวโหลดจาก สนน. */
 .img-btn img:not([data-state="ok"]) { visibility: hidden; }
