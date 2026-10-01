@@ -295,16 +295,6 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 </header>
 
 <main>
-  <!-- ปุ่มเลือกจุด เรียงตะวันตก → ตะวันออก: โหลดภาพ + กราฟจาก สนน. เฉพาะจุดที่กด (กันโดน Cloudflare บล็อก) -->
-  <section id="stations">
-    <div class="section-head">
-      <h2>ประตูระบายน้ำและจุดวัดระดับน้ำ</h2>
-      <span class="muted small">เรียงจากตะวันตก → ตะวันออก · กดชื่อจุดเพื่อโหลดภาพของจุดนั้น</span>
-    </div>
-    <div class="stn-bar" id="stnBar" role="tablist" aria-label="เลือกจุด (ตะวันตก → ตะวันออก)"></div>
-    <div class="stn-view" id="cards"></div>
-  </section>
-
   <!-- กราฟระดับน้ำทั้งคลอง: ไม่ฝังหน้า สนน. (หน้าของ สนน. ยิงคำขอวนไม่หยุด → โดน Cloudflare บล็อก)
        ให้เปิดที่เว็บ สนน. ในแท็บใหม่แทน -->
   <section class="panel hero">
@@ -322,6 +312,16 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
       </div>
     </div>
     <div class="dist-map" id="distMap"></div>
+  </section>
+
+  <!-- ปุ่มเลือกจุด เรียงตะวันตก → ตะวันออก: โหลดภาพ + กราฟจาก สนน. เฉพาะจุดที่กด (กันโดน Cloudflare บล็อก) -->
+  <section id="stations">
+    <div class="section-head">
+      <h2>ประตูระบายน้ำและจุดวัดระดับน้ำ</h2>
+      <span class="muted small">เรียงจากตะวันตก → ตะวันออก · กดชื่อจุดเพื่อโหลดภาพของจุดนั้น</span>
+    </div>
+    <div class="stn-bar" id="stnBar" role="tablist" aria-label="เลือกจุด (ตะวันตก → ตะวันออก)"></div>
+    <div class="stn-view" id="cards"></div>
   </section>
 
   <footer class="foot muted small">
