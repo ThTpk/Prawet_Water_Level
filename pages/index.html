@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระดับน้ำคลองประเวศ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 32 32"><path d="M3 20c3 0 3-2 6.5-2S13 20 16 20s3-2 6.5-2 3.5 2 6.5 2" /><path d="M3 26c3 0 3-2 6.5-2S13 26 16 26s3-2 6.5-2 3.5 2 6.5 2" /><path d="M16 4c-3 5-6 7.5-6 10.5a6 6 0 0 0 12 0C22 11.5 19 9 16 4z" class="drop"/></svg>
+    </div>
+    <div>
+      <h1>ระดับน้ำคลองประเวศบุรีรมย์</h1>
+      <p class="sub">ข้อมูลสดจาก <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">ระบบตรวจวัดระดับน้ำ สำนักการระบายน้ำ กทม.</a></p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span id="lastUpdate" class="muted"></span>
+    <button id="btnRefresh" class="btn">โหลดใหม่</button>
+  </div>
+</header>
+
+<main>
+  <!-- ภาพหลัก: กราฟระดับน้ำคลองประเวศ จากหน้า MapLetLeaf ของ สนน. (ฝังด้วย iframe) -->
+  <section class="panel hero">
+    <div class="panel-head">
+      <div>
+        <h2>แผนภาพระดับน้ำคลองประเวศบุรีรมย์</h2>
+        <p class="muted small">แสดงหน้า "ข้อมูลระดับน้ำ" ของ สนน. โดยตรง · ชี้ที่จุดบนกราฟเพื่อดูค่า · เลื่อนในกรอบได้</p>
+      </div>
+      <a class="small" href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">เปิดเว็บ สนน. ↗</a>
+    </div>
+    <!-- ฟอร์มซ่อน: หน้า MapLetLeaf ต้อง POST selriver=30_1 (คลองประเวศบุรีรมย์) และ #FrmIndex เลื่อนไปที่กราฟ (อยู่เหนือกราฟพอดี เผื่อแถบเมนูของ สนน. บัง) -->
+    <form id="frmProfile" method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf#FrmIndex" target="bmaProfile" hidden>
+      <input type="hidden" name="selriver" value="30_1">
+    </form>
+    <div class="frame-wrap">
+      <iframe name="bmaProfile" id="bmaProfile" title="แผนภาพระดับน้ำคลองประเวศ จากสำนักการระบายน้ำ" loading="eager"></iframe>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>ภาพประตูระบายน้ำและระดับน้ำรายจุด</h2>
+      <div class="seg" id="cardFilter">
+        <button data-f="all" class="on">ทุกจุด</button>
+        <button data-f="gate">เฉพาะประตูระบายน้ำ / สถานีสูบน้ำ</button>
+      </div>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <footer class="foot muted small">
+    ที่มา: <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">weather.bangkok.go.th/water</a>
+    · ข้อมูลทั้งหมดโหลดสดจากเว็บ สนน. ทุกครั้งที่เปิดหน้า · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
+  </footer>
+</main>
+
+<div id="lightbox" class="lightbox" hidden>
+  <figure><img alt=""><figcaption></figcaption></figure>
+</div>
+
+<script src="pages.js"></script>
+</body>
+</html>

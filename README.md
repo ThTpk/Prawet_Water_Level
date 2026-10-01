@@ -1,10 +1,28 @@
 # ระดับน้ำคลองประเวศบุรีรมย์ — หน้าเดียว ข้อมูลปัจจุบัน
 
+เว็บ: https://thtpk.github.io/LKB_Flooding/
+
 รวมข้อมูลระดับน้ำปัจจุบันของคลองประเวศบุรีรมย์จาก
 [ระบบตรวจวัดระดับน้ำ สำนักการระบายน้ำ กทม.](https://weather.bangkok.go.th/water/MapLetLeaf)
 ไว้ในหน้าเดียว ไม่ต้องเปิดดูทีละสถานี (ไม่เก็บข้อมูลย้อนหลัง)
 
-## เริ่มใช้งาน
+## เปิดเป็น GitHub Pages (โฟลเดอร์ `pages/`)
+
+เว็บ สนน. ไม่ยอมให้เซิร์ฟเวอร์ของ GitHub ดึงข้อมูล (ตอบ 403) หน้า GitHub Pages จึงให้
+**เบราว์เซอร์ของผู้ชมโหลดจาก สนน. โดยตรง**:
+
+- กราฟระดับน้ำคลองประเวศ: ฝังหน้า MapLetLeaf ด้วย `<iframe>` (ฟอร์มซ่อน POST `selriver=30_1`)
+- ภาพประตูระบายน้ำ/รูปตัดรายจุด: `<img>` จาก `StationDetail/CreateCrossection?id=…`
+
+ไม่ต้องตั้งเวลาดึงข้อมูล — GitHub Actions (`.github/workflows/pages.yml`) แค่ deploy เมื่อ push
+ทดลองในเครื่อง: `python build_static.py` แล้ว `python -m http.server 8070 -d site`
+
+ตั้งค่าครั้งแรก: ใน repo ไปที่ **Settings → Pages → Build and deployment → Source: GitHub Actions**
+
+ข้อจำกัด: กราฟในกรอบเป็นหน้าเว็บของ สนน. ทั้งหน้า (เลื่อนในกรอบได้) และถ้า สนน. ปิดการฝังหน้า
+หรือเปลี่ยนรหัสสถานี หน้านี้ต้องปรับตาม (รายชื่อสถานีอยู่ใน `pages/pages.js`)
+
+## ใช้งานในเครื่อง (Flask, แผนภาพวาดเอง)
 
 ```bash
 pip install -r requirements.txt
@@ -13,19 +31,6 @@ python app.py
 
 เปิด http://127.0.0.1:8050 (หรือดับเบิลคลิก `run.bat`)
 
-## เปิดเป็น GitHub Pages
-
-GitHub Pages เป็นเว็บแบบ static และเบราว์เซอร์อ่านข้อมูลจากเว็บ สนน. ตรงๆ ไม่ได้ (ไม่มี CORS)
-จึงใช้ GitHub Actions (`.github/workflows/pages.yml`) ดึงข้อมูลทุก ~10 นาที แล้วสร้างหน้าเว็บใหม่:
-
-1. `python build_static.py` → โฟลเดอร์ `site/` (index.html + data.json) — ทดลองในเครื่องได้ด้วย `python -m http.server -d site`
-2. Actions อัปโหลด `site/` ขึ้น GitHub Pages
-3. ภาพรูปตัดของแต่ละจุดโหลดสดจากเว็บ สนน. โดยตรง
-
-ตั้งค่าครั้งแรก: ใน repo ไปที่ **Settings → Pages → Build and deployment → Source: GitHub Actions**
-
-ข้อจำกัด: ตารางเวลาของ GitHub มักหน่วง 5–20 นาที และ GitHub จะปิด workflow ตามเวลา
-อัตโนมัติถ้า repo ไม่มี commit ใหม่ 60 วัน (กดเปิดใหม่ได้ที่แท็บ Actions)
 
 ## หน้าจอ
 

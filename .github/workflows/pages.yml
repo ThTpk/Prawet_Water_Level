@@ -1,10 +1,10 @@
-name: อัปเดตหน้าระดับน้ำคลองประเวศ (GitHub Pages)
+name: Deploy GitHub Pages
 
+# หน้าเว็บโหลดข้อมูลสดจาก สนน. ในเบราว์เซอร์ของผู้ชมเอง (iframe + รูปภาพ)
+# จึง deploy แค่ตอนแก้โค้ด ไม่ต้องตั้งเวลาดึงข้อมูล
 on:
   push:
     branches: [main]
-  schedule:
-    - cron: "*/10 * * * *"   # ทุก 10 นาที (GitHub อาจหน่วงเวลาจริงไปบ้าง)
   workflow_dispatch:
 
 permissions:
@@ -17,9 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -28,10 +27,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-          cache: pip
-      - run: pip install -r requirements.txt
-      - name: ดึงข้อมูลจาก สนน. และสร้างเว็บ
-        run: python build_static.py
+      - run: python build_static.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
