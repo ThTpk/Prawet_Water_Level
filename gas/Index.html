@@ -2,6 +2,8 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
+<!-- ไม่ส่ง Referer ไปเว็บ สนน. (ภาพ/ลิงก์/ฟอร์ม) -->
+<meta name="referrer" content="no-referrer">
 <title>ระดับน้ำคลองประเวศ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
@@ -286,7 +288,7 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
     </div>
     <div>
       <h1>ระดับน้ำคลองประเวศบุรีรมย์</h1>
-      <p class="sub">ข้อมูลสดจาก <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">ระบบตรวจวัดระดับน้ำ สำนักการระบายน้ำ กทม.</a></p>
+      <p class="sub">ข้อมูลสดจาก <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener noreferrer">ระบบตรวจวัดระดับน้ำ สำนักการระบายน้ำ กทม.</a></p>
     </div>
   </div>
   <div class="top-actions">
@@ -305,7 +307,7 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
       </div>
       <div class="head-right">
         <!-- หน้า MapLetLeaf ต้อง POST selriver=30_1 (คลองประเวศบุรีรมย์) -->
-        <form method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf" target="_blank">
+        <form method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf" target="_blank" rel="noopener noreferrer">
           <input type="hidden" name="selriver" value="30_1">
           <button class="btn small" type="submit">ดูกราฟระดับน้ำทั้งคลองที่เว็บ สนน. ↗</button>
         </form>
@@ -325,13 +327,13 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
   </section>
 
   <footer class="foot muted small">
-    ที่มา: <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">weather.bangkok.go.th/water</a>
+    ที่มา: <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener noreferrer">weather.bangkok.go.th/water</a>
     · ภาพโหลดสดจากเว็บ สนน. เฉพาะจุดที่เลือก · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
   </footer>
 </main>
 
 <div id="lightbox" class="lightbox" hidden>
-  <figure><img alt=""><figcaption></figcaption></figure>
+  <figure><img alt="" referrerpolicy="no-referrer"><figcaption></figcaption></figure>
 </div>
 
 <script>
@@ -376,12 +378,12 @@ function renderCards() {
         <div class="ttl"><h3>${esc(s.name)}</h3><p class="muted small">${esc(s.kind)} · ${esc(s.district)}</p></div>
       </header>
       <button class="img-btn" data-id="${s.id}" data-cap="${esc(s.name)}" aria-label="ขยายภาพ ${esc(s.name)}">
-        <img alt="ภาพรูปตัดและระดับน้ำ ${esc(s.name)}">
+        <img alt="ภาพรูปตัดและระดับน้ำ ${esc(s.name)}" referrerpolicy="no-referrer">
         <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — แตะเพื่อลองใหม่</span>
       </button>
       <footer class="small">
         <span class="muted">ระดับน้ำและเกณฑ์อยู่ในภาพ (ม.รทก.)</span>
-        <a href="${BMA}/StationDetail?id=${s.id}" target="_blank" rel="noopener">ดูกราฟระดับน้ำย้อนหลังที่หน้า สนน. ↗</a>
+        <a href="${BMA}/StationDetail?id=${s.id}" target="_blank" rel="noopener noreferrer">ดูกราฟระดับน้ำย้อนหลังที่หน้า สนน. ↗</a>
       </footer>
     </article>`;
   }).join("");

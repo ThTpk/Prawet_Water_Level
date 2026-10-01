@@ -2,6 +2,8 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
+<!-- ไม่ส่ง Referer ไปเว็บ สนน. (ภาพ/ลิงก์/ฟอร์ม) -->
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ระดับน้ำคลองประเวศ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +18,7 @@
     </div>
     <div>
       <h1>ระดับน้ำคลองประเวศบุรีรมย์</h1>
-      <p class="sub">ข้อมูลสดจาก <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">ระบบตรวจวัดระดับน้ำ สำนักการระบายน้ำ กทม.</a></p>
+      <p class="sub">ข้อมูลสดจาก <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener noreferrer">ระบบตรวจวัดระดับน้ำ สำนักการระบายน้ำ กทม.</a></p>
     </div>
   </div>
   <div class="top-actions">
@@ -35,7 +37,7 @@
       </div>
       <div class="head-right">
         <!-- หน้า MapLetLeaf ต้อง POST selriver=30_1 (คลองประเวศบุรีรมย์) -->
-        <form method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf" target="_blank">
+        <form method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf" target="_blank" rel="noopener noreferrer">
           <input type="hidden" name="selriver" value="30_1">
           <button class="btn small" type="submit">ดูกราฟระดับน้ำทั้งคลองที่เว็บ สนน. ↗</button>
         </form>
@@ -55,13 +57,13 @@
   </section>
 
   <footer class="foot muted small">
-    ที่มา: <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">weather.bangkok.go.th/water</a>
+    ที่มา: <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener noreferrer">weather.bangkok.go.th/water</a>
     · ภาพโหลดสดจากเว็บ สนน. เฉพาะจุดที่เลือก · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
   </footer>
 </main>
 
 <div id="lightbox" class="lightbox" hidden>
-  <figure><img alt=""><figcaption></figcaption></figure>
+  <figure><img alt="" referrerpolicy="no-referrer"><figcaption></figcaption></figure>
 </div>
 
 <script src="pages.js"></script>

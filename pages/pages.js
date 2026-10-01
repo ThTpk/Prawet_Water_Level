@@ -39,12 +39,12 @@ function renderCards() {
         <div class="ttl"><h3>${esc(s.name)}</h3><p class="muted small">${esc(s.kind)} · ${esc(s.district)}</p></div>
       </header>
       <button class="img-btn" data-id="${s.id}" data-cap="${esc(s.name)}" aria-label="ขยายภาพ ${esc(s.name)}">
-        <img alt="ภาพรูปตัดและระดับน้ำ ${esc(s.name)}">
+        <img alt="ภาพรูปตัดและระดับน้ำ ${esc(s.name)}" referrerpolicy="no-referrer">
         <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — แตะเพื่อลองใหม่</span>
       </button>
       <footer class="small">
         <span class="muted">ระดับน้ำและเกณฑ์อยู่ในภาพ (ม.รทก.)</span>
-        <a href="${BMA}/StationDetail?id=${s.id}" target="_blank" rel="noopener">ดูกราฟระดับน้ำย้อนหลังที่หน้า สนน. ↗</a>
+        <a href="${BMA}/StationDetail?id=${s.id}" target="_blank" rel="noopener noreferrer">ดูกราฟระดับน้ำย้อนหลังที่หน้า สนน. ↗</a>
       </footer>
     </article>`;
   }).join("");
