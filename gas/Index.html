@@ -651,20 +651,21 @@ function refresh() {
 const BMA_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|Windows Phone/i.test(navigator.userAgent);
 const PROFILE = BMA_MOBILE
   // กว้าง 700px (1 ต.ค. 2569): กราฟ x=45 y=1250 ขนาด 610×600 → เผื่อขอบ 10px
-  ? { pageW: 700, pageH: 3200, cropX: 35, cropY: 1240, viewW: 630, viewH: 620 }
+  // stretchY: กราฟแบบมือถือย่อแล้วเตี้ย จึงยืดความสูงเพิ่ม 40%
+  ? { pageW: 700, pageH: 3200, cropX: 35, cropY: 1240, viewW: 630, viewH: 620, stretchY: 1.4 }
   // กว้าง 1460px: กราฟ x≈305–1415 (บางครั้ง 345–1455 ก่อนหน้า สนน. จัดวางใหม่) → เผื่อขอบทั้งสองแบบ
-  : { pageW: 1460, pageH: 4600, cropX: 280, cropY: 1009, viewW: 1190, viewH: 712 };
+  : { pageW: 1460, pageH: 4600, cropX: 280, cropY: 1009, viewW: 1190, viewH: 712, stretchY: 1 };
 // ย่อ/ขยายให้กราฟพอดีความกว้างกล่อง (ไม่มีแถบเลื่อนของหน้าเรา)
 function fitFrame() {
   const wrap = $(".frame-wrap"), clip = $(".frame-clip"), f = $("#bmaProfile");
-  const s = wrap.clientWidth / PROFILE.viewW;
-  wrap.style.height = `${Math.round(PROFILE.viewH * s)}px`;
+  const s = wrap.clientWidth / PROFILE.viewW, sy = s * PROFILE.stretchY;
+  wrap.style.height = `${Math.round(PROFILE.viewH * sy)}px`;
   // หน้าต่างตัดขนาดเท่าส่วนกราฟ → ส่วนอื่นของหน้า สนน. ไม่โผล่
   clip.style.width = `${PROFILE.viewW * s}px`;
-  clip.style.height = `${PROFILE.viewH * s}px`;
+  clip.style.height = `${PROFILE.viewH * sy}px`;
   f.style.width = `${PROFILE.pageW}px`;
   f.style.height = `${PROFILE.pageH}px`;
-  f.style.transform = `scale(${s}) translate(${-PROFILE.cropX}px, ${-PROFILE.cropY}px)`;
+  f.style.transform = `scale(${s}, ${sy}) translate(${-PROFILE.cropX}px, ${-PROFILE.cropY}px)`;
 }
 
 /* ---------- แผนผังระยะห่างระหว่างจุดวัดตามแนวคลอง ---------- */
