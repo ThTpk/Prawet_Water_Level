@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระดับน้ำคลองประเวศ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="{{ 'style.css' if static_site else url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 32 32"><path d="M3 20c3 0 3-2 6.5-2S13 20 16 20s3-2 6.5-2 3.5 2 6.5 2" /><path d="M3 26c3 0 3-2 6.5-2S13 26 16 26s3-2 6.5-2 3.5 2 6.5 2" /><path d="M16 4c-3 5-6 7.5-6 10.5a6 6 0 0 0 12 0C22 11.5 19 9 16 4z" class="drop"/></svg>
+    </div>
+    <div>
+      <h1>ระดับน้ำคลองประเวศบุรีรมย์</h1>
+      <p class="sub">ข้อมูลปัจจุบันจาก <a href="{{ bma }}/MapLetLeaf" target="_blank" rel="noopener">ระบบตรวจวัดระดับน้ำ สำนักการระบายน้ำ กทม.</a></p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span id="lastUpdate" class="muted">กำลังโหลด…</span>
+    <button id="btnRefresh" class="btn">ดึงข้อมูลใหม่</button>
+  </div>
+</header>
+
+<main>
+  <div id="errors" class="errors" hidden></div>
+
+  <section class="panel hero">
+    <div class="panel-head">
+      <div>
+        <h2>แผนภาพระดับน้ำตามแนวคลอง</h2>
+        <p class="muted small">จากสถานีสูบน้ำพระโขนง (ตะวันตก) ถึงลาดกระบัง (ตะวันออก) · หน่วย ม.รทก. · คลิกสถานีเพื่อเลื่อนไปดูภาพ</p>
+      </div>
+      <div class="head-right">
+        <div class="summary" id="summary"></div>
+        <div class="seg" role="group" aria-label="ระยะแกนนอน">
+          <button data-xmode="even" class="on">ระยะเท่ากัน</button>
+          <button data-xmode="km">ระยะจริง (กม.)</button>
+        </div>
+      </div>
+    </div>
+    <div id="profileWrap" class="profile-wrap">
+      <p id="loading" class="loading muted">กำลังดึงข้อมูลจากเว็บสำนักการระบายน้ำ…</p>
+      <svg id="profile" role="img" aria-label="แผนภาพระดับน้ำคลองประเวศ"></svg>
+      <div id="tip" class="tip" hidden></div>
+    </div>
+    <div class="legend">
+      <span><i class="sw water"></i>ระดับน้ำ</span>
+      <span><i class="ln control"></i>ระดับควบคุม</span>
+      <span><i class="ln warn"></i>ระดับเตือนภัย</span>
+      <span><i class="ln crit"></i>ระดับวิกฤต</span>
+      <span><i class="sw gate"></i>ประตูระบายน้ำ / สถานีสูบน้ำ</span>
+      <span class="dots"><i class="dot s-normal"></i>ปกติ <i class="dot s-warning"></i>เตือนภัย <i class="dot s-critical"></i>วิกฤต <i class="dot s-nodata"></i>ไม่มีข้อมูล</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>ภาพประตูระบายน้ำและระดับน้ำรายจุด</h2>
+      <div class="seg" id="cardFilter">
+        <button data-f="all" class="on">ทุกจุด</button>
+        <button data-f="gate">เฉพาะประตูระบายน้ำ / สถานีสูบน้ำ</button>
+      </div>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="extraSection" hidden>
+    <div class="section-head"><h2>สถานีอื่นที่ติดตาม</h2></div>
+    <div class="cards" id="extraCards"></div>
+  </section>
+
+  <footer class="foot muted small">
+    ที่มา: <a href="{{ bma }}/MapLetLeaf" target="_blank" rel="noopener">weather.bangkok.go.th/water</a>
+    · แสดงเฉพาะข้อมูลปัจจุบัน ไม่เก็บย้อนหลัง · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
+    {% if static_site %}<br>ตัวเลขอัปเดตโดย GitHub Actions ประมาณทุก 10–20 นาที (ภาพโหลดสดจาก สนน.) · ดึงข้อมูลล่าสุดเมื่อ <span id="builtAt">–</span>{% endif %}
+  </footer>
+</main>
+
+<div id="lightbox" class="lightbox" hidden>
+  <figure><img alt=""><figcaption></figcaption></figure>
+</div>
+
+<script>
+  window.BMA_BASE = {{ bma|tojson }};
+  // static_site = เว็บ GitHub Pages: อ่าน data.json ที่ GitHub Actions สร้าง และโหลดภาพจาก สนน. โดยตรง
+  window.SITE = {{ {"static": static_site}|tojson }};
+</script>
+<script src="{{ 'app.js' if static_site else url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
