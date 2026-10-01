@@ -62,6 +62,7 @@ function renderCards() {
         <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — แตะเพื่อลองใหม่</span>
       </button>
       <div class="hist-frame" data-id="${s.id}">
+        <button class="btn graph-load hist-load" data-id="${s.id}">โหลดกราฟระดับน้ำย้อนหลัง</button>
         <p class="hist-msg muted small">กำลังโหลดกราฟระดับน้ำย้อนหลังจาก สนน.…</p>
       </div>
       <footer class="small">
@@ -160,8 +161,7 @@ function profileTask(done) {
 }
 function showProfile() {
   profileOn = true;
-  $("#profileLoad").hidden = true;
-  $(".frame-wrap").hidden = false;
+  $(".frame-wrap").classList.remove("idle");
   fitFrame();
   profileState.tries = 0;
   enqueue("profile", profileTask, true);
@@ -192,11 +192,12 @@ function imgTask(img) {
 // กราฟย้อนหลัง: ข้ามถ้าโหลดไปแล้ว (เช่น ลองใหม่ที่ค้างอยู่ หลังผู้ใช้กดกลับมาที่จุดนี้)
 const histTask = (id) => (done) => ($(`.hist-frame[data-id="${id}"]`)?.dataset.loaded ? done() : loadHist(id, done));
 // ภาพ → กราฟย้อนหลัง ของจุดที่เลือก (ส่วนที่โหลดไว้แล้วไม่โหลดซ้ำ จนถึงรอบรีเฟรช)
+// กราฟย้อนหลังโหลดเฉพาะจุดที่กดปุ่ม "โหลดกราฟ" แล้ว (data-want)
 function queueStation(id) {
   const img = $(`#st-${id} .img-btn img`);
   const box = $(`.hist-frame[data-id="${id}"]`);
   if (img && (!img.dataset.state || img.dataset.state === "retry")) enqueue(`img${id}`, imgTask(img));
-  if (box && !box.dataset.loaded) enqueue(`hist${id}`, histTask(id));
+  if (box && box.dataset.want && !box.dataset.loaded) enqueue(`hist${id}`, histTask(id));
 }
 
 let lastRefresh = 0;
@@ -489,6 +490,13 @@ $("#stnBar").addEventListener("click", (e) => {
   if (b) select(Number(b.dataset.id));
 });
 $("#profileLoad").addEventListener("click", showProfile);
+$("#cards").addEventListener("click", (e) => {
+  const b = e.target.closest(".hist-load");
+  if (!b) return;
+  const box = b.closest(".hist-frame");
+  box.dataset.want = "1";
+  enqueue(`hist${b.dataset.id}`, histTask(Number(b.dataset.id)), true);
+});
 document.addEventListener("click", (e) => {
   const b = e.target.closest(".img-btn");
   const lb = $("#lightbox");

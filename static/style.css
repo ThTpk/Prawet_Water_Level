@@ -192,7 +192,10 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .stn-btn.on small { color: rgba(255, 255, 255, .85); }
 .stn-btn.on .n { background: rgba(255, 255, 255, .22); color: #fff; }
 .stn-view { max-width: 920px; margin: 0 auto; }
-.frame-wrap[hidden], .btn[hidden] { display: none; }
+/* กราฟของ สนน. ยังไม่โหลด: แสดงปุ่ม "โหลดกราฟ" กลางกรอบแทน */
+.graph-load { position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 10px 20px; font-size: 15px; }
+.frame-wrap:not(.idle) .graph-load, .hist-frame[data-want] .hist-load { display: none; }
+.frame-wrap.idle .frame-msg, .hist-frame:not([data-want]) .hist-msg { display: none; }
 
 /* กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ (iframe ย่อด้วย transform ใน pages.js) */
 .hist-frame { position: relative; overflow: hidden; background: #fff; border-top: 1px solid var(--line); min-height: 120px; }

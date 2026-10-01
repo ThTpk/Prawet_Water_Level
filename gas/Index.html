@@ -200,7 +200,10 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .stn-btn.on small { color: rgba(255, 255, 255, .85); }
 .stn-btn.on .n { background: rgba(255, 255, 255, .22); color: #fff; }
 .stn-view { max-width: 920px; margin: 0 auto; }
-.frame-wrap[hidden], .btn[hidden] { display: none; }
+/* กราฟของ สนน. ยังไม่โหลด: แสดงปุ่ม "โหลดกราฟ" กลางกรอบแทน */
+.graph-load { position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 10px 20px; font-size: 15px; }
+.frame-wrap:not(.idle) .graph-load, .hist-frame[data-want] .hist-load { display: none; }
+.frame-wrap.idle .frame-msg, .hist-frame:not([data-want]) .hist-msg { display: none; }
 
 /* กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ (iframe ย่อด้วย transform ใน pages.js) */
 .hist-frame { position: relative; overflow: hidden; background: #fff; border-top: 1px solid var(--line); min-height: 120px; }
@@ -322,13 +325,13 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
   <section id="stations">
     <div class="section-head">
       <h2>ประตูระบายน้ำและจุดวัดระดับน้ำ</h2>
-      <span class="muted small">เรียงจากตะวันตก → ตะวันออก · กดชื่อจุดเพื่อโหลดภาพและกราฟของจุดนั้น</span>
+      <span class="muted small">เรียงจากตะวันตก → ตะวันออก · กดชื่อจุดเพื่อดูภาพ · กราฟโหลดเมื่อกดปุ่ม "โหลดกราฟ"</span>
     </div>
     <div class="stn-bar" id="stnBar" role="tablist" aria-label="เลือกจุด (ตะวันตก → ตะวันออก)"></div>
     <div class="stn-view" id="cards"></div>
   </section>
 
-  <!-- กราฟระดับน้ำทั้งคลอง จากหน้า MapLetLeaf ของ สนน. (ฝังด้วย iframe) — โหลดเมื่อกดปุ่มเท่านั้น -->
+  <!-- กราฟระดับน้ำทั้งคลอง จากหน้า MapLetLeaf ของ สนน. (ฝังด้วย iframe) — โหลดเมื่อกดปุ่มในกรอบเท่านั้น -->
   <section class="panel hero">
     <div class="panel-head">
       <div>
@@ -336,7 +339,6 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
         <p class="muted small">กราฟจากหน้า "ข้อมูลระดับน้ำ" ของ สนน. โดยตรง · ชี้ที่จุดบนกราฟเพื่อดูค่า</p>
       </div>
       <div class="head-right">
-        <button class="btn small" id="profileLoad">แสดงแผนภาพทั้งคลอง</button>
         <a class="small" href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">เปิดเว็บ สนน. ↗</a>
       </div>
     </div>
@@ -344,7 +346,8 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
     <form id="frmProfile" method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf" target="bmaProfile" hidden>
       <input type="hidden" name="selriver" value="30_1">
     </form>
-    <div class="frame-wrap" hidden>
+    <div class="frame-wrap idle">
+      <button class="btn graph-load" id="profileLoad">โหลดกราฟระดับน้ำทั้งคลอง</button>
       <p class="frame-msg muted small">กำลังโหลดกราฟระดับน้ำจาก สนน.…</p>
       <!-- frame-clip = หน้าต่างตัดเฉพาะส่วนกราฟ -->
       <div class="frame-clip">
@@ -435,6 +438,7 @@ function renderCards() {
         <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — แตะเพื่อลองใหม่</span>
       </button>
       <div class="hist-frame" data-id="${s.id}">
+        <button class="btn graph-load hist-load" data-id="${s.id}">โหลดกราฟระดับน้ำย้อนหลัง</button>
         <p class="hist-msg muted small">กำลังโหลดกราฟระดับน้ำย้อนหลังจาก สนน.…</p>
       </div>
       <footer class="small">
@@ -533,8 +537,7 @@ function profileTask(done) {
 }
 function showProfile() {
   profileOn = true;
-  $("#profileLoad").hidden = true;
-  $(".frame-wrap").hidden = false;
+  $(".frame-wrap").classList.remove("idle");
   fitFrame();
   profileState.tries = 0;
   enqueue("profile", profileTask, true);
@@ -565,11 +568,12 @@ function imgTask(img) {
 // กราฟย้อนหลัง: ข้ามถ้าโหลดไปแล้ว (เช่น ลองใหม่ที่ค้างอยู่ หลังผู้ใช้กดกลับมาที่จุดนี้)
 const histTask = (id) => (done) => ($(`.hist-frame[data-id="${id}"]`)?.dataset.loaded ? done() : loadHist(id, done));
 // ภาพ → กราฟย้อนหลัง ของจุดที่เลือก (ส่วนที่โหลดไว้แล้วไม่โหลดซ้ำ จนถึงรอบรีเฟรช)
+// กราฟย้อนหลังโหลดเฉพาะจุดที่กดปุ่ม "โหลดกราฟ" แล้ว (data-want)
 function queueStation(id) {
   const img = $(`#st-${id} .img-btn img`);
   const box = $(`.hist-frame[data-id="${id}"]`);
   if (img && (!img.dataset.state || img.dataset.state === "retry")) enqueue(`img${id}`, imgTask(img));
-  if (box && !box.dataset.loaded) enqueue(`hist${id}`, histTask(id));
+  if (box && box.dataset.want && !box.dataset.loaded) enqueue(`hist${id}`, histTask(id));
 }
 
 let lastRefresh = 0;
@@ -862,6 +866,13 @@ $("#stnBar").addEventListener("click", (e) => {
   if (b) select(Number(b.dataset.id));
 });
 $("#profileLoad").addEventListener("click", showProfile);
+$("#cards").addEventListener("click", (e) => {
+  const b = e.target.closest(".hist-load");
+  if (!b) return;
+  const box = b.closest(".hist-frame");
+  box.dataset.want = "1";
+  enqueue(`hist${b.dataset.id}`, histTask(Number(b.dataset.id)), true);
+});
 document.addEventListener("click", (e) => {
   const b = e.target.closest(".img-btn");
   const lb = $("#lightbox");
