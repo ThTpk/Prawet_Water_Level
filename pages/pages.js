@@ -176,10 +176,11 @@ function retryLater(key, run, tries) {
 }
 
 // กราฟหลัก (MapLetLeaf)
-const profileState = { start: 0, tries: 0, done: null };
+const profileState = { start: 0, tries: 0, done: null, expecting: false };
 function profileTask(done) {
   profileState.start = Date.now();
   profileState.done = done;
+  profileState.expecting = true;
   guardScroll(15000);                     // หน้า สนน. ในกรอบอาจลากหน้าเราเลื่อนระหว่างโหลด
   $("#frmProfile").submit();               // โหลดกราฟ MapLetLeaf ใหม่ใน iframe
 }
@@ -255,8 +256,8 @@ function refresh() {
 const BMA_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|Windows Phone/i.test(navigator.userAgent);
 const PROFILE = BMA_MOBILE
   // กว้าง 700px (1 ต.ค. 2569): กราฟ x=45 y=1250 ขนาด 610×600 → เผื่อขอบ 10px
-  // stretchY: กราฟแบบมือถือย่อแล้วเตี้ย จึงยืดความสูงเพิ่ม 40%
-  ? { pageW: 700, pageH: 3200, cropX: 35, cropY: 1240, viewW: 630, viewH: 620, stretchY: 1.4 }
+  // stretchY: กราฟแบบมือถือย่อแล้วเตี้ย จึงยืดความสูงเพิ่ม 20%
+  ? { pageW: 700, pageH: 3200, cropX: 35, cropY: 1240, viewW: 630, viewH: 620, stretchY: 1.2 }
   // กว้าง 1460px: กราฟ x≈305–1415 (บางครั้ง 345–1455 ก่อนหน้า สนน. จัดวางใหม่) → เผื่อขอบทั้งสองแบบ
   : { pageW: 1460, pageH: 4600, cropX: 280, cropY: 1009, viewW: 1190, viewH: 712, stretchY: 1 };
 // ย่อ/ขยายให้กราฟพอดีความกว้างกล่อง (ไม่มีแถบเลื่อนของหน้าเรา)
@@ -476,6 +477,15 @@ $("#bmaProfile").addEventListener("load", (e) => {
   // load ของกรอบว่าง (about:blank) ตอนเปิดหน้า อาจมาถึงหลังเริ่มส่งฟอร์มแล้ว → ไม่นับ
   // (กรอบว่างอ่านได้ ส่วนหน้า สนน. ต่างโดเมนอ่านไม่ได้ → เกิด error = เป็นหน้า สนน. จริง)
   try { if (e.target.contentWindow.location.href === "about:blank") return; } catch { /* หน้า สนน. */ }
+  if (!profileState.expecting) {
+    // หน้าโหลดเองโดยเราไม่ได้สั่ง = ผู้ใช้คลิกจุดบนกราฟ แล้วหน้า สนน. พาไปหน้าสถานีในกรอบ
+    // (ห้ามจากภายนอกไม่ได้) → ซ่อนกรอบแล้วโหลดกราฟกลับมาทันที
+    $(".frame-wrap").classList.remove("ready");
+    $(".frame-msg").textContent = "กำลังโหลดกราฟระดับน้ำจาก สนน.…";
+    enqueue("profile", profileTask, true);
+    return;
+  }
+  profileState.expecting = false;
   const done = profileState.done || (() => {});
   profileState.done = null;
   if (Date.now() - profileState.start < FAST_FAIL_MS) {
