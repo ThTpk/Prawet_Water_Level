@@ -6,7 +6,7 @@
 <title>ระดับน้ำคลองประเวศ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="{{ 'style.css' if static_site else url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 <header class="top">
@@ -75,20 +75,14 @@
 
   <footer class="foot muted small">
     ที่มา: <a href="{{ bma }}/MapLetLeaf" target="_blank" rel="noopener">weather.bangkok.go.th/water</a>
-    · แสดงเฉพาะข้อมูลปัจจุบัน ไม่เก็บย้อนหลัง · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
-    {% if static_site %}<br>ตัวเลขอัปเดตโดย GitHub Actions ประมาณทุก 10–20 นาที (ภาพโหลดสดจาก สนน.) · ดึงข้อมูลล่าสุดเมื่อ <span id="builtAt">–</span>{% endif %}
-  </footer>
+    · แสดงเฉพาะข้อมูลปัจจุบัน ไม่เก็บย้อนหลัง · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ  </footer>
 </main>
 
 <div id="lightbox" class="lightbox" hidden>
   <figure><img alt=""><figcaption></figcaption></figure>
 </div>
 
-<script>
-  window.BMA_BASE = {{ bma|tojson }};
-  // static_site = เว็บ GitHub Pages: อ่าน data.json ที่ GitHub Actions สร้าง และโหลดภาพจาก สนน. โดยตรง
-  window.SITE = {{ {"static": static_site}|tojson }};
-</script>
-<script src="{{ 'app.js' if static_site else url_for('static', filename='app.js') }}"></script>
+<script>window.BMA_BASE = {{ bma|tojson }};</script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

@@ -18,15 +18,8 @@ const STATUS = {
 const statusColor = (k) => css(STATUS[k]?.c || "--nodata");
 
 const state = { data: null, xmode: "even", filter: "all", imgStamp: Date.now() };
-const STATIC = !!(window.SITE && window.SITE.static);
-
-// เว็บ GitHub Pages ดึงภาพจาก สนน. ตรง ส่วนเซิร์ฟเวอร์ Flask ใช้ตัวกลาง /img/
-const imgUrl = (id) => STATIC
-  ? `${window.BMA_BASE}/StationDetail/CreateCrossection?id=${id}&_=${state.imgStamp}`
-  : `/img/${id}.png?t=${state.imgStamp}`;
-const dataUrl = (force) => STATIC
-  ? `data.json?t=${Date.now()}`
-  : "/api/prawet" + (force ? "?force=1" : "");
+const imgUrl = (id) => `/img/${id}.png?t=${state.imgStamp}`;
+const dataUrl = (force) => "/api/prawet" + (force ? "?force=1" : "");
 
 /* ---------- helpers ---------- */
 function sideStatus(o) {
@@ -297,9 +290,7 @@ async function load(force = false) {
   $("#errors").hidden = !errs.length;
   $("#errors").innerHTML = errs.map((e) => `<div>⚠ ${esc(e)}</div>`).join("");
   const ts = (state.data.stations || []).map((s) => s.ts).filter(Boolean);
-  $("#lastUpdate").textContent = `ข้อมูลระดับน้ำ ${ts.length ? ts.sort().slice(-1)[0] : "–"} น.`;
-  if ($("#builtAt")) $("#builtAt").textContent = (state.data.fetched_at || "–") + " น.";
-  renderSummary();
+  $("#lastUpdate").textContent = `ข้อมูลระดับน้ำ ${ts.length ? ts.sort().slice(-1)[0] : "–"} น.`;  renderSummary();
   drawProfile();
   renderCards();
 }
@@ -307,9 +298,8 @@ async function load(force = false) {
 $("#btnRefresh").addEventListener("click", async (e) => {
   const b = e.currentTarget; b.disabled = true; b.textContent = "กำลังดึง…";
   try { await load(true); } catch (err) { alert(err.message); }
-  finally { b.disabled = false; b.textContent = STATIC ? "โหลดใหม่" : "ดึงข้อมูลใหม่"; }
+  finally { b.disabled = false; b.textContent = "ดึงข้อมูลใหม่"; }
 });
-if (STATIC) $("#btnRefresh").textContent = "โหลดใหม่";
 $$("[data-xmode]").forEach((b) => b.addEventListener("click", () => {
   $$("[data-xmode]").forEach((x) => x.classList.toggle("on", x === b));
   state.xmode = b.dataset.xmode; drawProfile();

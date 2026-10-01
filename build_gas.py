@@ -1,4 +1,4 @@
-"""สร้าง gas/Index.html สำหรับ Google Apps Script จากหน้า GitHub Pages (pages/)
+"""สร้าง gas/Index.html สำหรับ Google Apps Script จากหน้าเว็บใน pages/
 
     python build_gas.py
     clasp push && clasp deploy -i <deploymentId>     # อัปเดตเว็บเดิม (ลิงก์ไม่เปลี่ยน)

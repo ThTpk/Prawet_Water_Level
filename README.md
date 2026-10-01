@@ -1,33 +1,23 @@
 # ระดับน้ำคลองประเวศบุรีรมย์ — หน้าเดียว ข้อมูลปัจจุบัน
 
-เว็บ: https://thtpk.github.io/LKB_Flooding/
-
 รวมข้อมูลระดับน้ำปัจจุบันของคลองประเวศบุรีรมย์จาก
 [ระบบตรวจวัดระดับน้ำ สำนักการระบายน้ำ กทม.](https://weather.bangkok.go.th/water/MapLetLeaf)
 ไว้ในหน้าเดียว ไม่ต้องเปิดดูทีละสถานี (ไม่เก็บข้อมูลย้อนหลัง)
 
-## เปิดเป็น GitHub Pages (โฟลเดอร์ `pages/`)
-
-เว็บ สนน. ไม่ยอมให้เซิร์ฟเวอร์ของ GitHub ดึงข้อมูล (ตอบ 403) หน้า GitHub Pages จึงให้
-**เบราว์เซอร์ของผู้ชมโหลดจาก สนน. โดยตรง**:
-
-- กราฟระดับน้ำคลองประเวศ: ฝังหน้า MapLetLeaf ด้วย `<iframe>` (ฟอร์มซ่อน POST `selriver=30_1`)
-- ภาพประตูระบายน้ำ/รูปตัดรายจุด: `<img>` จาก `StationDetail/CreateCrossection?id=…`
-
-ไม่ต้องตั้งเวลาดึงข้อมูล — GitHub Actions (`.github/workflows/pages.yml`) แค่ deploy เมื่อ push
-ทดลองในเครื่อง: `python build_static.py` แล้ว `python -m http.server 8070 -d site`
-
-ตั้งค่าครั้งแรก: ใน repo ไปที่ **Settings → Pages → Build and deployment → Source: GitHub Actions**
-
-ข้อจำกัด: กราฟในกรอบเป็นหน้าเว็บของ สนน. ทั้งหน้า (เลื่อนในกรอบได้) และถ้า สนน. ปิดการฝังหน้า
-หรือเปลี่ยนรหัสสถานี หน้านี้ต้องปรับตาม (รายชื่อสถานีอยู่ใน `pages/pages.js`)
-
-## Google Apps Script Web App (โฟลเดอร์ `gas/`)
+## Google Apps Script Web App (โฟลเดอร์ `gas/` — เว็บหลัก)
 
 เว็บ: https://script.google.com/macros/s/AKfycby89ZK2THTWzkvEFOgzwtC5PB62JIF1JFEczwgEIoYp7Ys-W-9UW8dGQ-S5QrSuCHnw/exec
 (บัญชี thanunchaithreepak@gmail.com · เปิดได้ทุกคนโดยไม่ต้องล็อกอิน)
 
-หน้าเดียวกับ GitHub Pages — `gas/Index.html` สร้างจาก `pages/` อัตโนมัติ อัปเดตแล้วลิงก์ไม่เปลี่ยน:
+เว็บ สนน. ไม่ยอมให้เซิร์ฟเวอร์ต่างประเทศดึงข้อมูล (ตอบ 403) หน้าเว็บจึงให้
+**เบราว์เซอร์ของผู้ชมโหลดจาก สนน. โดยตรง**:
+
+- กราฟระดับน้ำคลองประเวศ: ฝังหน้า MapLetLeaf ด้วย `<iframe>` (ฟอร์มซ่อน POST `selriver=30_1`)
+  และซ่อนแถบเมนูซ้ายของ สนน. ไว้นอกกรอบ (มีปุ่ม "แสดงเมนู สนน.")
+- ภาพประตูระบายน้ำ/รูปตัดรายจุด: `<img>` จาก `StationDetail/CreateCrossection?id=…`
+
+ต้นฉบับหน้าเว็บอยู่ใน `pages/` (รายชื่อสถานีอยู่ใน `pages/pages.js`) — `build_gas.py` รวมเป็น
+`gas/Index.html` แล้วอัปเดตเว็บเดิม (ลิงก์ไม่เปลี่ยน):
 
 ```bash
 python build_gas.py
@@ -35,6 +25,8 @@ cd gas
 clasp push -f
 clasp deploy -i AKfycby89ZK2THTWzkvEFOgzwtC5PB62JIF1JFEczwgEIoYp7Ys-W-9UW8dGQ-S5QrSuCHnw -d "อธิบายการแก้ไข"
 ```
+
+ข้อจำกัด: ถ้า สนน. ปิดการฝังหน้าเว็บหรือเปลี่ยนรหัสสถานี หน้านี้ต้องปรับตาม
 
 ## ใช้งานในเครื่อง (Flask, แผนภาพวาดเอง)
 

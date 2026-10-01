@@ -127,7 +127,6 @@ def build_data(force: bool = False) -> dict:
                       "status": worst(side_status(sin), side_status(sout))})
 
     return {
-        # เวลาไทยเสมอ (เครื่อง GitHub Actions ใช้ UTC)
         "fetched_at": datetime.fromtimestamp(_cache.get("profile", (time.time(),))[0], TH_TZ)
                               .strftime("%Y-%m-%d %H:%M:%S"),
         "stations": stations, "extra": extra, "errors": errors,
@@ -137,7 +136,7 @@ def build_data(force: bool = False) -> dict:
 
 @app.get("/")
 def index():
-    return render_template("index.html", bma=config.BMA_BASE, static_site=False)
+    return render_template("index.html", bma=config.BMA_BASE)
 
 
 @app.get("/api/prawet")
