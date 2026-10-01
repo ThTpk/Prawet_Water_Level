@@ -62,7 +62,7 @@ h3 { font-size: 15px; font-weight: 600; }
 .btn:hover { filter: brightness(1.08); }
 .btn:disabled { opacity: .6; cursor: progress; }
 
-main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid; gap: 22px; }
+main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
 
 .errors { background: color-mix(in srgb, var(--crit) 12%, var(--panel)); border: 1px solid var(--crit); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
 
@@ -159,6 +159,10 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 
 /* ---------- iframe (GitHub Pages) ---------- */
 .frame-wrap { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; min-height: 200px; }
+/* จอแคบ: กราฟไม่ย่อเล็กกว่าที่อ่านได้ ให้เลื่อนซ้าย-ขวาในกรอบ */
+.frame-wrap.pan { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+.pan-hint { display: none; margin: 6px 2px 0; }
+.frame-wrap.pan + .pan-hint { display: block; }
 /* หน้า สนน. ทั้งหน้าในกรอบ ย่อ/ตัดด้วย transform ใน pages.js (fitFrame) */
 #bmaProfile { position: absolute; left: 0; top: 0; border: 0; max-width: none; transform-origin: 0 0; opacity: 0; transition: opacity .3s; }
 .frame-wrap.ready #bmaProfile { opacity: 1; }
@@ -215,6 +219,7 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 /* แผนผังระยะห่างระหว่างจุดวัด */
 .dist-head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 14px 0 4px; }
 .dist-map { overflow-x: auto; min-height: 158px; }
+.dm-hit { fill: transparent; }
 .dist-map svg { display: block; font-family: inherit; }
 .dm-canal { stroke: var(--water); stroke-width: 6; stroke-linecap: round; opacity: .55; }
 .dm-dim { stroke: var(--muted); stroke-width: 1; }
@@ -250,3 +255,32 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 
 /* รับโฟกัสคืนจากกรอบ สนน. โดยไม่ทำให้หน้าเลื่อน */
 .focus-sink { position: fixed; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; outline: none; }
+
+/* ---------- Responsive: ไอแพด / มือถือ ---------- */
+@media (max-width: 1024px) {
+  main { padding: 16px 18px 36px; gap: 18px; }
+  .top { padding: 10px 18px; }
+}
+@media (max-width: 760px) {
+  .section-head { flex-direction: column; align-items: stretch; }
+  .section-head .seg { align-self: flex-start; }
+  .dist-head { flex-direction: column; gap: 2px; }
+  .car-nav { width: 38px; height: 38px; font-size: 24px; top: 32%; }
+  .car-bar { flex-wrap: nowrap; }
+  .st-card header { padding: 10px 12px 8px; }
+  .st-card footer { padding: 8px 12px 10px; }
+}
+@media (max-width: 640px) {
+  .top { position: static; flex-direction: column; align-items: stretch; gap: 8px; }
+  .top-actions { justify-content: space-between; }
+  .brand { gap: 10px; }
+  .logo { width: 36px; height: 36px; }
+  main { padding: 12px 12px 28px; gap: 14px; }
+  .panel { padding: 12px; }
+  .panel-head { flex-direction: column; gap: 4px; }
+  h2 { font-size: 15px; }
+  .seg button { padding: 5px 10px; }
+  .chip { font-size: 12px; padding: 4px 10px; }
+  .car-pos { min-width: 36px; }
+  .foot { padding: 0 4px; }
+}

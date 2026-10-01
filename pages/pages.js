@@ -5,29 +5,36 @@ const BMA = "https://weather.bangkok.go.th/water";
 
 // สถานีบนแผนภาพคลองประเวศ เรียงตะวันตก -> ตะวันออก (ตามหน้า MapLetLeaf, selriver=30_1)
 // km = ระยะสะสมโดยประมาณ (เส้นตรงระหว่างพิกัดสถานีของ สนน.)
-// histTop = ตำแหน่งแถบหัวข้อ "ข้อมูลระดับน้ำย้อนหลัง" (px จากบนสุด) ในหน้าสถานีของ สนน.
-//   ที่ความกว้าง BMA_PAGE_W โดยไม่เลื่อนหน้า (วัดจริง 1 ต.ค. 2569 — ถ้า สนน. ปรับหน้าเว็บต้องวัดใหม่)
+// histTop / histTopM = ตำแหน่งแถบหัวข้อ "ข้อมูลระดับน้ำย้อนหลัง" (px จากบนสุด) ในหน้าสถานีของ สนน.
+//   แบบจอใหญ่ (กว้าง 1180) / แบบมือถือ (กว้าง 440) โดยไม่เลื่อนหน้า
+//   (วัดจริง 1 ต.ค. 2569 — ถ้า สนน. ปรับหน้าเว็บต้องวัดใหม่)
 const STATIONS = [
-  { id: 43, name: "ส.พระโขนง", kind: "สถานีสูบน้ำ", district: "คลองเตย", km: 0, histTop: 1610 },
-  { id: 238, name: "ค.ประเวศ ซ.อ่อนนุช 17", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 1.8, histTop: 1317 },
-  { id: 42, name: "ค.ประเวศฯ-วัดขจรฯ", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 5.1, histTop: 1618 },
-  { id: 40, name: "ปตร.คลองประเวศฯ-วัดกระทุ่มฯ", kind: "ประตูระบายน้ำ", district: "ประเวศ", km: 10.4, histTop: 1647 },
-  { id: 206, name: "ค.ตาพุก ถ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ประเวศ", km: 12.6, histTop: 1317 },
-  { id: 39, name: "ปตร.คลองประเวศฯ-ลาดกระบัง", kind: "ประตูระบายน้ำ", district: "ลาดกระบัง", km: 17.0, histTop: 1647 },
-  { id: 64, name: "ค.ประเวศฯ-รพ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 20.7, histTop: 1618 },
-  { id: 65, name: "ค.ประเวศฯ-ถ.ร่วมพัฒนา", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 28.3, histTop: 1618 },
+  { id: 43, name: "ส.พระโขนง", kind: "สถานีสูบน้ำ", district: "คลองเตย", km: 0, histTop: 1610, histTopM: 1340 },
+  { id: 238, name: "ค.ประเวศ ซ.อ่อนนุช 17", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 1.8, histTop: 1317, histTopM: 1027 },
+  { id: 42, name: "ค.ประเวศฯ-วัดขจรฯ", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 5.1, histTop: 1618, histTopM: 1346 },
+  { id: 40, name: "ปตร.คลองประเวศฯ-วัดกระทุ่มฯ", kind: "ประตูระบายน้ำ", district: "ประเวศ", km: 10.4, histTop: 1647, histTopM: 1358 },
+  { id: 206, name: "ค.ตาพุก ถ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ประเวศ", km: 12.6, histTop: 1317, histTopM: 1027 },
+  { id: 39, name: "ปตร.คลองประเวศฯ-ลาดกระบัง", kind: "ประตูระบายน้ำ", district: "ลาดกระบัง", km: 17.0, histTop: 1647, histTopM: 1358 },
+  { id: 64, name: "ค.ประเวศฯ-รพ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 20.7, histTop: 1618, histTopM: 1346 },
+  { id: 65, name: "ค.ประเวศฯ-ถ.ร่วมพัฒนา", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 28.3, histTop: 1618, histTopM: 1346 },
 ];
 
 /* กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ: เปิดหน้าสถานีในกรอบที่ "สูงพอทั้งหน้า" (หน้าไม่ต้องเลื่อน)
    แล้วตัดให้เห็นเฉพาะหัวข้อ + กราฟที่ตำแหน่ง histTop จากนั้นย่อด้วย CSS ให้พอดีการ์ด
    - ไม่ใช้การเลื่อนไป anchor เพราะหน้า สนน. ปักหมุดแถบเมนูเมื่อเลื่อน ทำให้ตำแหน่งคลาดไม่แน่นอน
    - โหลดเฉพาะสถานีที่กำลังแสดง (สนน. บล็อกชั่วคราวถ้าโหลดหน้าสถานีพร้อมกันหลายหน้า) */
-const BMA_PAGE_W = 1180;   // หน้า สนน. กว้างนี้: แถบเมนู 260 + เนื้อหา 920 (คอลัมน์เรียงซ้อนกัน)
-const BMA_PAGE_H = 3400;   // สูงกว่าทั้งหน้าสถานี หน้าจึงไม่เลื่อนและแถบเมนูไม่ปักหมุด
-const HIST_CROP_X = 300;   // แถบหัวข้อเริ่มที่ x≈340, กราฟ x≈345 → ตัดซ้ายออก (เผื่อขอบ)
-const HIST_VIEW_W = 900;   // กว้างพอดีแถบหัวข้อ + กราฟ (830px) + ขอบ
-const HIST_TOP_PAD = 6;    // เผื่อขอบเหนือแถบหัวข้อ
-const HIST_VIEW_H = 312;   // แถบหัวข้อ (47px) + กราฟ (250px) + ขอบ
+// สองแบบตามความกว้างการ์ด: จอใหญ่ใช้หน้า สนน. แบบเดสก์ท็อป, มือถือใช้หน้า สนน. แบบมือถือ
+// (กราฟแคบแต่ตัวหนังสือขนาดปกติ — ถ้าย่อแบบเดสก์ท็อปลงจอมือถือจะอ่านไม่ออก)
+const HIST_LAYOUTS = {
+  // หน้า สนน. กว้าง 1180: แถบเมนู 260 + เนื้อหา 920; แถบหัวข้อ x≈340, กราฟ x≈345 กว้าง 830 สูง 250
+  desktop: { pageW: 1180, cropX: 300, viewW: 900, viewH: 312, topKey: "histTop" },
+  // หน้า สนน. กว้าง 440 (ซ่อนแถบเมนูเอง): แถบหัวข้อ x≈80 กว้าง 360, กราฟ x≈85 กว้าง 350 อยู่ใต้หัวข้อ 79px
+  mobile: { pageW: 440, cropX: 45, viewW: 405, viewH: 346, topKey: "histTopM" },
+};
+const HIST_MOBILE_BELOW = 620;  // การ์ดแคบกว่านี้ใช้แบบมือถือ
+const BMA_PAGE_H = 3400;        // สูงกว่าทั้งหน้าสถานี หน้าจึงไม่เลื่อนและแถบเมนูไม่ปักหมุด
+const HIST_TOP_PAD = 6;         // เผื่อขอบเหนือแถบหัวข้อ
+const histMode = (box) => (box.clientWidth < HIST_MOBILE_BELOW ? "mobile" : "desktop");
 
 // สถานีที่แสดงเป็นภาพแรกเมื่อเปิดหน้า
 const START_STATION_ID = 39; // ปตร.คลองประเวศฯ-ลาดกระบัง
@@ -155,10 +162,14 @@ const PROFILE_CROP_X = 315;
 const PROFILE_CROP_Y = 1009;
 const PROFILE_VIEW_W = 1150;
 const PROFILE_VIEW_H = 712;
+// จอแคบ (มือถือ/ไอแพดแนวตั้ง) ไม่ย่อกราฟเล็กกว่านี้ ให้เลื่อนซ้าย-ขวาในกล่องแทน ตัวหนังสือจึงยังอ่านได้
+const PROFILE_MIN_W = 660;
 
 function fitFrame() {
   const wrap = $(".frame-wrap"), f = $("#bmaProfile");
-  const s = wrap.clientWidth / PROFILE_VIEW_W;
+  const w = Math.max(wrap.clientWidth, PROFILE_MIN_W);
+  wrap.classList.toggle("pan", w > wrap.clientWidth);
+  const s = w / PROFILE_VIEW_W;
   wrap.style.height = `${Math.round(PROFILE_VIEW_H * s)}px`;
   f.style.width = `${PROFILE_PAGE_W}px`;
   f.style.height = `${PROFILE_PAGE_H}px`;
@@ -166,8 +177,49 @@ function fitFrame() {
 }
 
 /* ---------- แผนผังระยะห่างระหว่างจุดวัดตามแนวคลอง ---------- */
+const svgEl = (n, a, p, txt) => {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", n);
+  for (const k in a) e.setAttribute(k, a[k]);
+  if (txt != null) e.textContent = txt;
+  if (p) p.appendChild(e);
+  return e;
+};
+// จอแคบ: แผนผังแนวตั้ง (บน = ตะวันตก, ล่าง = ตะวันออก) ความสูงแต่ละช่วงตามระยะจริง แต่ไม่ชิดเกินไป
+function drawDistMapVertical(box) {
+  const W = box.clientWidth, LX = Math.min(86, W * 0.24), T = 34, B = 40, PX_PER_KM = 16, MIN_GAP = 46;
+  const ys = [T];
+  STATIONS.slice(1).forEach((s, i) => ys.push(ys[i] + Math.max(MIN_GAP, (s.km - STATIONS[i].km) * PX_PER_KM)));
+  const H = ys[ys.length - 1] + B;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img",
+    "aria-label": "แผนผังระยะห่างระหว่างจุดวัดระดับน้ำตามแนวคลองประเวศ" });
+  svgEl("text", { x: LX, y: 14, class: "dm-end", "text-anchor": "middle" }, svg, "↑ ตะวันตก");
+  svgEl("text", { x: LX, y: H - 8, class: "dm-end", "text-anchor": "middle" }, svg, "ตะวันออก ↓");
+  svgEl("line", { x1: LX, x2: LX, y1: ys[0], y2: ys[ys.length - 1], class: "dm-canal" }, svg);
+  STATIONS.slice(1).forEach((s, i) => {
+    const y0 = ys[i], y1 = ys[i + 1];
+    svgEl("line", { x1: LX - 22, x2: LX - 22, y1: y0, y2: y1, class: "dm-dim" }, svg);
+    svgEl("text", { x: LX - 28, y: (y0 + y1) / 2 + 4, class: "dm-seg", "text-anchor": "end" }, svg,
+      `${(s.km - STATIONS[i].km).toFixed(1)} กม.`);
+  });
+  STATIONS.forEach((s, i) => {
+    const y = ys[i], gate = s.kind !== "จุดวัดระดับน้ำ";
+    const g = svgEl("g", { class: "dm-stn", "data-id": s.id, tabindex: 0, role: "button",
+      "aria-label": `${s.name} กม. ${s.km.toFixed(1)}` }, svg);
+    svgEl("title", {}, g, `${s.name} · ${s.kind} · กม. ${s.km.toFixed(1)}`);
+    svgEl("rect", { x: LX - 24, y: y - 18, width: W - LX + 24, height: 36, class: "dm-hit" }, g);
+    svgEl("line", { x1: LX - 26, x2: LX - 18, y1: y, y2: y, class: "dm-tick" }, g);
+    if (gate) svgEl("rect", { x: LX - 12, y: y - 4, width: 24, height: 8, rx: 1.5, class: "dm-gate" }, g);
+    else svgEl("circle", { cx: LX, cy: y, r: 7, class: "dm-pt" }, g);
+    svgEl("text", { x: LX + 20, y: y - 2, class: "dm-name" }, g, `${i + 1}. ${s.name}`);
+    svgEl("text", { x: LX + 20, y: y + 14, class: "dm-km" }, g, `กม. ${s.km.toFixed(1)} · ${s.kind}`);
+  });
+  box.replaceChildren(svg);
+  markCurrent();
+}
+
 function drawDistMap() {
   const box = $("#distMap");
+  if (box.clientWidth < 860) return drawDistMapVertical(box);   // แคบกว่านี้ชื่อสถานีแนวนอนจะชนกัน
   const NS = "http://www.w3.org/2000/svg";
   const W = Math.max(box.clientWidth, 900), H = 158, L = 64, R = 64, LINE_Y = 52;
   const total = STATIONS[STATIONS.length - 1].km;
@@ -230,12 +282,19 @@ function onDistPick(e) {
 function sizeHist(box) {
   const f = $("iframe", box);
   if (!f) return;
+  // ความกว้างการ์ดข้ามเกณฑ์มือถือ/จอใหญ่ → ต้องโหลดหน้า สนน. แบบใหม่
+  if (box.dataset.mode && box.dataset.mode !== histMode(box)) {
+    delete box.dataset.loaded;
+    if (Number(box.dataset.id) === currentId) loadHist(currentId);
+    return;
+  }
+  const L = HIST_LAYOUTS[box.dataset.mode || histMode(box)];
   const st = STATIONS.find((s) => s.id === Number(box.dataset.id));
-  const s = box.clientWidth / HIST_VIEW_W;          // ย่อ/ขยายให้พอดีการ์ด
-  const top = st.histTop - HIST_TOP_PAD;
-  box.style.height = `${Math.round(HIST_VIEW_H * s)}px`;
+  const s = box.clientWidth / L.viewW;               // ย่อ/ขยายให้พอดีการ์ด
+  const top = st[L.topKey] - HIST_TOP_PAD;
+  box.style.height = `${Math.round(L.viewH * s)}px`;
   f.style.height = `${BMA_PAGE_H}px`;
-  f.style.transform = `scale(${s}) translate(${-HIST_CROP_X}px, ${-top}px)`;
+  f.style.transform = `scale(${s}) translate(${-L.cropX}px, ${-top}px)`;
 }
 /* หน้า สนน. ในกรอบ (โดยเฉพาะหน้าสถานี) ดึงโฟกัสเข้าไปในตัวเองหลังโหลด เบราว์เซอร์จึงเลื่อนหน้าเรา
    ไปหากรอบนั้น → ถ้ากรอบดึงโฟกัส/หน้าเลื่อนเองโดยผู้ใช้ไม่ได้ทำ (ล้อเมาส์/นิ้ว/คีย์/คลิก)
@@ -249,19 +308,30 @@ window.addEventListener("scroll", () => {
   if (autoScrollBlocked()) window.scrollTo(0, stableY);
   else stableY = window.scrollY;
 }, { passive: true });
-// เมาส์อยู่บนกรอบ สนน. = ผู้ใช้กำลังใช้กราฟ/ช่องเลือกในกรอบ ไม่ดึงโฟกัสกลับ
-let pointerInFrame = false;
-document.addEventListener("pointerover", (e) => { pointerInFrame = e.target.tagName === "IFRAME"; }, true);
-document.addEventListener("pointerout", (e) => { if (e.target.tagName === "IFRAME") pointerInFrame = false; }, true);
+// เมาส์อยู่บน "กรอบเดียวกับที่ได้โฟกัส" = ผู้ใช้กำลังใช้กราฟ/ช่องเลือกในกรอบนั้น ไม่ดึงโฟกัสกลับ
+// (ถ้าเมาส์ค้างอยู่บนกรอบอื่น เช่น กราฟหลัก แล้วกรอบกราฟย้อนหลังแย่งโฟกัส ยังต้องดึงกลับ)
+// ต้องวางเมาส์บนกรอบนั้นมาแล้วอย่างน้อย 1 วินาที — ถ้าหน้าเพิ่งเลื่อนจนกรอบมาอยู่ใต้เมาส์เองไม่นับ
+let hoveredFrame = null, hoverSince = 0;
+document.addEventListener("pointerover", (e) => {
+  const f = e.target.tagName === "IFRAME" ? e.target : null;
+  if (f !== hoveredFrame) { hoveredFrame = f; hoverSince = Date.now(); }
+}, true);
+document.addEventListener("pointerout", (e) => { if (e.target === hoveredFrame) hoveredFrame = null; }, true);
 function reclaimFocus() {
+  // เบราว์เซอร์อาจเลื่อนหน้า "หลัง" จากที่ดึงโฟกัสกลับแล้ว → 2 วินาทีหลังถูกแย่งโฟกัส คอยคืนตำแหน่งเลื่อน
+  if (Date.now() - stealAt < 2000 && !userActive() && Math.abs(window.scrollY - stableY) > 2) {
+    window.scrollTo(0, stableY);
+  }
   // โฟกัสย้ายเข้าไปในกรอบ สนน. เอง (ผู้ใช้ไม่ได้คลิกกรอบ) → ดึงกลับ และคืนตำแหน่งเลื่อน
-  if (pointerInFrame || userActive() || document.activeElement?.tagName !== "IFRAME") return;
+  const a = document.activeElement;
+  const usingFrame = a === hoveredFrame && Date.now() - hoverSince > 1000 && Math.abs(window.scrollY - stableY) < 3;
+  if (a?.tagName !== "IFRAME" || usingFrame || userActive()) return;
   stealAt = Date.now();
   $("#focusSink").focus({ preventScroll: true });
   if (Math.abs(window.scrollY - stableY) > 2) window.scrollTo(0, stableY);
 }
 window.addEventListener("blur", reclaimFocus);
-setInterval(reclaimFocus, 500);   // สำรอง เผื่อเบราว์เซอร์ไม่ยิง blur
+setInterval(reclaimFocus, 150);   // สำรอง เผื่อเบราว์เซอร์ไม่ยิง blur (เช็กถี่ หน้าจะได้ไม่กระตุกนาน)
 function guardScroll(ms) {
   stableY = window.scrollY;
   guardUntil = Date.now() + ms;
@@ -272,22 +342,24 @@ function loadHist(id, force = false) {
   if (!box || (box.dataset.loaded && !force)) return;
   guardScroll(15000);
   box.dataset.loaded = "1";
+  box.dataset.mode = histMode(box);
+  const pageW = HIST_LAYOUTS[box.dataset.mode].pageW;
   box.classList.remove("ready");
   $("iframe", box)?.remove();
   const f = document.createElement("iframe");
   f.title = `กราฟระดับน้ำย้อนหลังจากสำนักการระบายน้ำ`;
   f.scrolling = "no";
   f.tabIndex = -1;
-  f.style.width = `${BMA_PAGE_W}px`;
+  f.style.width = `${pageW}px`;
   box.appendChild(f);
   sizeHist(box);
   f.onload = () => {
     // รอภาพในหน้า สนน. โหลดเสร็จ (ตำแหน่งกราฟจึงนิ่ง) แล้วขยับความกว้าง 1px ให้ Highcharts วาดใหม่
     // ซ่อนกรอบไว้จนเสร็จ ผู้ชมจึงไม่เห็นหน้า สนน. ขยับ
-    setTimeout(() => { if (box.contains(f)) f.style.width = `${BMA_PAGE_W + 1}px`; }, 1200);
+    setTimeout(() => { if (box.contains(f)) f.style.width = `${pageW + 1}px`; }, 1200);
     setTimeout(() => {
       if (!box.contains(f)) return;
-      f.style.width = `${BMA_PAGE_W}px`;
+      f.style.width = `${pageW}px`;
       box.classList.add("ready");
     }, 1500);
   };
