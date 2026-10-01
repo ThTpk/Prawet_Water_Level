@@ -4,18 +4,30 @@
 const BMA = "https://weather.bangkok.go.th/water";
 
 // สถานีบนแผนภาพคลองประเวศ เรียงตะวันตก -> ตะวันออก (ตามหน้า MapLetLeaf, selriver=30_1)
-// anchor = จุดที่ให้หน้าสถานีของ สนน. เลื่อนไป เพื่อให้กราฟย้อนหลังอยู่ใต้แถบเมนูที่ปักหมุดด้านบน
-//   ค่าเริ่มต้น div_status (กล่องสถานะอุปกรณ์ เหนือกราฟ ~360px); สถานีที่ไม่มีกล่องนี้ใช้ภาพรูปตัด
+// km = ระยะสะสมโดยประมาณ (เส้นตรงระหว่างพิกัดสถานีของ สนน.)
+// histTop = ตำแหน่งแถบหัวข้อ "ข้อมูลระดับน้ำย้อนหลัง" (px จากบนสุด) ในหน้าสถานีของ สนน.
+//   ที่ความกว้าง BMA_PAGE_W โดยไม่เลื่อนหน้า (วัดจริง 1 ต.ค. 2569 — ถ้า สนน. ปรับหน้าเว็บต้องวัดใหม่)
 const STATIONS = [
-  { id: 43, name: "ส.พระโขนง", kind: "สถานีสูบน้ำ", district: "คลองเตย" },
-  { id: 238, name: "ค.ประเวศ ซ.อ่อนนุช 17", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", anchor: "crossection" },
-  { id: 42, name: "ค.ประเวศฯ-วัดขจรฯ", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง" },
-  { id: 40, name: "ปตร.คลองประเวศฯ-วัดกระทุ่มฯ", kind: "ประตูระบายน้ำ", district: "ประเวศ" },
-  { id: 206, name: "ค.ตาพุก ถ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ประเวศ", anchor: "crossection" },
-  { id: 39, name: "ปตร.คลองประเวศฯ-ลาดกระบัง", kind: "ประตูระบายน้ำ", district: "ลาดกระบัง" },
-  { id: 64, name: "ค.ประเวศฯ-รพ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง" },
-  { id: 65, name: "ค.ประเวศฯ-ถ.ร่วมพัฒนา", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง" },
+  { id: 43, name: "ส.พระโขนง", kind: "สถานีสูบน้ำ", district: "คลองเตย", km: 0, histTop: 1610 },
+  { id: 238, name: "ค.ประเวศ ซ.อ่อนนุช 17", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 1.8, histTop: 1317 },
+  { id: 42, name: "ค.ประเวศฯ-วัดขจรฯ", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 5.1, histTop: 1618 },
+  { id: 40, name: "ปตร.คลองประเวศฯ-วัดกระทุ่มฯ", kind: "ประตูระบายน้ำ", district: "ประเวศ", km: 10.4, histTop: 1647 },
+  { id: 206, name: "ค.ตาพุก ถ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ประเวศ", km: 12.6, histTop: 1317 },
+  { id: 39, name: "ปตร.คลองประเวศฯ-ลาดกระบัง", kind: "ประตูระบายน้ำ", district: "ลาดกระบัง", km: 17.0, histTop: 1647 },
+  { id: 64, name: "ค.ประเวศฯ-รพ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 20.7, histTop: 1618 },
+  { id: 65, name: "ค.ประเวศฯ-ถ.ร่วมพัฒนา", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 28.3, histTop: 1618 },
 ];
+
+/* กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ: เปิดหน้าสถานีในกรอบที่ "สูงพอทั้งหน้า" (หน้าไม่ต้องเลื่อน)
+   แล้วตัดให้เห็นเฉพาะหัวข้อ + กราฟที่ตำแหน่ง histTop จากนั้นย่อด้วย CSS ให้พอดีการ์ด
+   - ไม่ใช้การเลื่อนไป anchor เพราะหน้า สนน. ปักหมุดแถบเมนูเมื่อเลื่อน ทำให้ตำแหน่งคลาดไม่แน่นอน
+   - โหลดเฉพาะสถานีที่กำลังแสดง (สนน. บล็อกชั่วคราวถ้าโหลดหน้าสถานีพร้อมกันหลายหน้า) */
+const BMA_PAGE_W = 1180;   // หน้า สนน. กว้างนี้: แถบเมนู 260 + เนื้อหา 920 (คอลัมน์เรียงซ้อนกัน)
+const BMA_PAGE_H = 3400;   // สูงกว่าทั้งหน้าสถานี หน้าจึงไม่เลื่อนและแถบเมนูไม่ปักหมุด
+const HIST_CROP_X = 322;   // แถบหัวข้อเริ่มที่ x≈340, กราฟ x≈345 → ตัดซ้ายออก
+const HIST_VIEW_W = 872;   // กว้างพอดีแถบหัวข้อ + กราฟ (830px) + ขอบ
+const HIST_TOP_PAD = 6;    // เผื่อขอบเหนือแถบหัวข้อ
+const HIST_VIEW_H = 312;   // แถบหัวข้อ (47px) + กราฟ (250px) + ขอบ
 
 // สถานีที่แสดงเป็นภาพแรกเมื่อเปิดหน้า
 const START_STATION_ID = 39; // ปตร.คลองประเวศฯ-ลาดกระบัง
@@ -42,8 +54,8 @@ function renderCards(t) {
              onerror="this.closest('.img-btn').classList.add('img-fail')">
         <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — กดโหลดใหม่ หรือเปิดหน้าสถานี</span>
       </button>
-      <div class="hist-row">
-        <button class="btn hist-btn" data-id="${s.id}" data-name="${esc(s.name)}">ดูกราฟระดับน้ำย้อนหลัง</button>
+      <div class="hist-frame" data-id="${s.id}">
+        <p class="hist-msg muted small">กำลังโหลดกราฟระดับน้ำย้อนหลังจาก สนน.…</p>
       </div>
       <footer class="small">
         <span class="muted">ระดับน้ำและเกณฑ์อยู่ในภาพ (ม.รทก.)</span>
@@ -92,6 +104,10 @@ function markCurrent() {
   });
   $$(".st-card").forEach((c) => c.setAttribute("aria-hidden", String(c.id !== `st-${currentId}`)));
   $("#carPos").textContent = `${vis.indexOf(currentId) + 1} / ${vis.length}`;
+  $$("#distMap .dm-stn").forEach((g) => g.classList.toggle("on", Number(g.dataset.id) === currentId));
+  // โหลดกราฟย้อนหลังเฉพาะสถานีที่แสดง (หน่วงเล็กน้อย เผื่อกำลังกดเลื่อนผ่านหลายสถานี)
+  clearTimeout(markCurrent.t);
+  markCurrent.t = setTimeout(() => loadHist(currentId), 400);
 }
 // ปัดด้วยนิ้ว/ทัชแพด: อัปเดตสถานีปัจจุบันตามการ์ดที่อยู่กลางกรอบ
 let scrollT;
@@ -111,7 +127,12 @@ function refresh() {
   $("#frmProfile").submit();               // โหลดกราฟ MapLetLeaf ใหม่ใน iframe
   $$(".img-btn").forEach((b) => b.classList.remove("img-fail"));
   if (!$("#cards").children.length) renderCards(t);
-  else $$(".img-btn img").forEach((img) => (img.src = imgUrl(img.closest(".img-btn").dataset.id, t)));
+  else {
+    $$(".img-btn img").forEach((img) => (img.src = imgUrl(img.closest(".img-btn").dataset.id, t)));
+    // กราฟย้อนหลัง: ให้สถานีอื่นโหลดใหม่เมื่อเลื่อนไปถึง ส่วนสถานีที่แสดงอยู่โหลดใหม่ทันที
+    $$(".hist-frame").forEach((b) => delete b.dataset.loaded);
+    loadHist(currentId, true);
+  }
   const d = new Date();
   $("#lastUpdate").textContent = `โหลดเมื่อ ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")} น.`;
 }
@@ -133,42 +154,102 @@ function cropSidebar(wrap, f, hide, extra = 0) {
 }
 function fitFrame(extra = 0) {
   cropSidebar($(".frame-wrap"), $("#bmaProfile"), !showSidebar, extra);
-  if (!$("#histModal").hidden) cropSidebar($("#histModal .modal-frame"), $("#histFrame"), true);
 }
 
-/* หน้าต่างกราฟระดับน้ำย้อนหลัง: เปิดหน้าสถานีของ สนน. ทีละหน้าเมื่อกดปุ่ม
-   (ไม่ฝังพร้อมกันทุกจุด เพราะหน้าสถานีหนัก และ สนน. บล็อกชั่วคราวถ้าโหลดพร้อมกันหลายหน้า)
-   - หน้า สนน. ปักหมุดแถบเมนูไว้ด้านบนเมื่อเลื่อนลง → CSS ตัดขอบบนของกรอบทิ้ง (ดู #histFrame)
-   - โหลดหน้าก่อน แล้วค่อยเลื่อนไปที่ anchor หลังภาพโหลดเสร็จ ตำแหน่งจึงไม่คลาด */
-function openHistory(id, name) {
-  const m = $("#histModal"), f = $("#histFrame"), wrap = $("#histModal .modal-frame");
-  const st = STATIONS.find((s) => String(s.id) === String(id)) || {};
-  $("#histTitle").textContent = `กราฟระดับน้ำย้อนหลัง · ${name}`;
-  $("#histLink").href = `${BMA}/StationDetail?id=${id}`;
-  m.hidden = false;
-  document.body.style.overflow = "hidden";
-  cropSidebar(wrap, f, true);
-  const url = stationUrl(id, Date.now());
-  let jumped = false;
-  f.onload = () => {
-    if (jumped) return;
-    setTimeout(() => {
-      jumped = true;
-      f.src = `${url}#${st.anchor || "div_status"}`;   // เปลี่ยนแค่ # = เลื่อนในหน้าเดิม ไม่โหลดใหม่
-      // ให้ Highcharts ของ สนน. วาดใหม่ให้พอดีกรอบ (เหมือนกรอบกราฟหลัก)
-      cropSidebar(wrap, f, true, 1);
-      setTimeout(() => cropSidebar(wrap, f, true), 150);
-    }, 800);
+/* ---------- แผนผังระยะห่างระหว่างจุดวัดตามแนวคลอง ---------- */
+function drawDistMap() {
+  const box = $("#distMap");
+  const NS = "http://www.w3.org/2000/svg";
+  const W = Math.max(box.clientWidth, 900), H = 158, L = 64, R = 64, LINE_Y = 52;
+  const total = STATIONS[STATIONS.length - 1].km;
+  const X = (km) => L + (km / total) * (W - L - R);
+  const el = (n, a, p, txt) => {
+    const e = document.createElementNS(NS, n);
+    for (const k in a) e.setAttribute(k, a[k]);
+    if (txt != null) e.textContent = txt;
+    p.appendChild(e);
+    return e;
   };
-  f.src = url;
+  box.innerHTML = "";
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img",
+    "aria-label": "แผนผังระยะห่างระหว่างจุดวัดระดับน้ำตามแนวคลองประเวศ" }, box);
+  el("text", { x: 4, y: LINE_Y + 4, class: "dm-end" }, svg, "ตะวันตก");
+  el("text", { x: W - 4, y: LINE_Y + 4, class: "dm-end", "text-anchor": "end" }, svg, "ตะวันออก");
+  el("line", { x1: X(0), x2: X(total), y1: LINE_Y, y2: LINE_Y, class: "dm-canal" }, svg);
+  // ระยะระหว่างจุด
+  STATIONS.slice(1).forEach((s, i) => {
+    const a = STATIONS[i], xm = (X(a.km) + X(s.km)) / 2;
+    el("line", { x1: X(a.km), x2: X(s.km), y1: LINE_Y - 20, y2: LINE_Y - 20, class: "dm-dim" }, svg);
+    el("text", { x: xm, y: LINE_Y - 25, class: "dm-seg", "text-anchor": "middle" }, svg,
+      `${(s.km - a.km).toFixed(1)} กม.`);
+  });
+  // สถานี (ชื่อสลับสองแถวกันชนกัน)
+  STATIONS.forEach((s, i) => {
+    const x = X(s.km), gate = s.kind !== "จุดวัดระดับน้ำ";
+    const g = el("g", { class: "dm-stn", "data-id": s.id, tabindex: 0, role: "button",
+      "aria-label": `${s.name} กม. ${s.km.toFixed(1)}` }, svg);
+    el("title", {}, g, `${s.name} · ${s.kind} · กม. ${s.km.toFixed(1)}`);
+    el("line", { x1: x, x2: x, y1: LINE_Y - 20, y2: LINE_Y - 14, class: "dm-tick" }, g);
+    if (gate) el("rect", { x: x - 4, y: LINE_Y - 12, width: 8, height: 24, rx: 1.5, class: "dm-gate" }, g);
+    else el("circle", { cx: x, cy: LINE_Y, r: 7, class: "dm-pt" }, g);
+    const ly = LINE_Y + (i % 2 ? 76 : 34);                 // ชื่อ + กม. สองบรรทัด สลับแถวบน/ล่าง
+    // ป้ายชื่อจุดแรก/จุดสุดท้ายชิดเข้าด้านใน ไม่ให้ล้นขอบ
+    const anchor = i === 0 ? "start" : i === STATIONS.length - 1 ? "end" : "middle";
+    const tx = i === 0 ? x - 8 : i === STATIONS.length - 1 ? x + 8 : x;
+    if (i % 2) el("line", { x1: x, x2: x, y1: LINE_Y + 14, y2: ly - 14, class: "dm-lead" }, g);
+    el("text", { x: tx, y: ly, "text-anchor": anchor, class: "dm-name" }, g, `${i + 1}. ${s.name}`);
+    el("text", { x: tx, y: ly + 17, "text-anchor": anchor, class: "dm-km" }, g, `กม. ${s.km.toFixed(1)}`);
+  });
+  markCurrent();
 }
-function closeHistory() {
-  const m = $("#histModal");
-  if (m.hidden) return;
-  m.hidden = true;
-  document.body.style.overflow = "";
-  $("#histFrame").onload = null;
-  $("#histFrame").src = "about:blank";
+function onDistPick(e) {
+  const g = e.target.closest(".dm-stn");
+  if (!g || (e.type === "keydown" && e.key !== "Enter" && e.key !== " ")) return;
+  e.preventDefault();
+  if ($(`#st-${g.dataset.id}`).hidden) {   // จุดนี้ถูกกรองออก → กลับไปแสดงทุกจุด
+    filter = "all";
+    $$("#cardFilter button").forEach((x) => x.classList.toggle("on", x.dataset.f === "all"));
+    $$(".st-card, .chip").forEach((c) => (c.hidden = false));
+  }
+  goTo(Number(g.dataset.id));
+  $("#carousel").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+/* ---------- กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ ---------- */
+function sizeHist(box) {
+  const f = $("iframe", box);
+  if (!f) return;
+  const st = STATIONS.find((s) => s.id === Number(box.dataset.id));
+  const s = box.clientWidth / HIST_VIEW_W;          // ย่อ/ขยายให้พอดีการ์ด
+  const top = st.histTop - HIST_TOP_PAD;
+  box.style.height = `${Math.round(HIST_VIEW_H * s)}px`;
+  f.style.height = `${BMA_PAGE_H}px`;
+  f.style.transform = `scale(${s}) translate(${-HIST_CROP_X}px, ${-top}px)`;
+}
+function loadHist(id, force = false) {
+  const box = $(`.hist-frame[data-id="${id}"]`);
+  if (!box || (box.dataset.loaded && !force)) return;
+  box.dataset.loaded = "1";
+  box.classList.remove("ready");
+  $("iframe", box)?.remove();
+  const f = document.createElement("iframe");
+  f.title = `กราฟระดับน้ำย้อนหลังจากสำนักการระบายน้ำ`;
+  f.scrolling = "no";
+  f.tabIndex = -1;
+  f.style.width = `${BMA_PAGE_W}px`;
+  box.appendChild(f);
+  sizeHist(box);
+  f.onload = () => {
+    // รอภาพในหน้า สนน. โหลดเสร็จ (ตำแหน่งกราฟจึงนิ่ง) แล้วขยับความกว้าง 1px ให้ Highcharts วาดใหม่
+    // ซ่อนกรอบไว้จนเสร็จ ผู้ชมจึงไม่เห็นหน้า สนน. ขยับ
+    setTimeout(() => { if (box.contains(f)) f.style.width = `${BMA_PAGE_W + 1}px`; }, 1200);
+    setTimeout(() => {
+      if (!box.contains(f)) return;
+      f.style.width = `${BMA_PAGE_W}px`;
+      box.classList.add("ready");
+    }, 1500);
+  };
+  f.src = stationUrl(id, Date.now());
 }
 // กราฟ Highcharts ของ สนน. วัดขนาดก่อนหน้าเว็บจัดวางเสร็จเมื่ออยู่ใน iframe จึงกว้างเกินกรอบ
 // ขยับความกว้าง iframe 1px หลังโหลด เพื่อให้เกิด resize ภายใน แล้วกราฟจะวาดใหม่ให้พอดี
@@ -184,7 +265,9 @@ $("#btnSidebar").addEventListener("click", (e) => {
 let rz;
 window.addEventListener("resize", () => {
   clearTimeout(rz);
-  rz = setTimeout(() => { fitFrame(); goTo(currentId, false); }, 100);
+  rz = setTimeout(() => {
+    fitFrame(); drawDistMap(); $$(".hist-frame").forEach(sizeHist); goTo(currentId, false);
+  }, 100);
 });
 fitFrame();
 
@@ -201,9 +284,6 @@ $$("#cardFilter button").forEach((b) => b.addEventListener("click", () => {
   filter = b.dataset.f; applyFilter();
 }));
 document.addEventListener("click", (e) => {
-  const h = e.target.closest(".hist-btn");
-  if (h) return openHistory(h.dataset.id, h.dataset.name);
-  if (e.target.closest("#histClose") || e.target.id === "histModal") return closeHistory();
   const b = e.target.closest(".img-btn");
   const lb = $("#lightbox");
   if (b && !b.classList.contains("img-fail")) {
@@ -211,14 +291,18 @@ document.addEventListener("click", (e) => {
   } else if (e.target.closest("#lightbox")) lb.hidden = true;
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { $("#lightbox").hidden = true; closeHistory(); return; }
-  // ลูกศรซ้าย/ขวา เปลี่ยนสถานี (เมื่อไม่ได้เปิดหน้าต่างหรือพิมพ์อยู่)
-  const busy = !$("#histModal").hidden || !$("#lightbox").hidden || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
+  if (e.key === "Escape") { $("#lightbox").hidden = true; return; }
+  // ลูกศรซ้าย/ขวา เปลี่ยนสถานี (เมื่อไม่ได้เปิดภาพขยายหรือพิมพ์อยู่)
+  const busy = !$("#lightbox").hidden || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if (!busy && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
     e.preventDefault();
     step(e.key === "ArrowLeft" ? -1 : 1);
   }
 });
 
+$("#distMap").addEventListener("click", onDistPick);
+$("#distMap").addEventListener("keydown", onDistPick);
+
 refresh();
+drawDistMap();
 setInterval(refresh, 5 * 60e3);

@@ -202,20 +202,32 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .chip:hover { border-color: var(--accent); }
 .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-/* ปุ่มและหน้าต่างกราฟระดับน้ำย้อนหลัง */
-.hist-row { padding: 12px 14px 0; }
-.hist-btn { width: 100%; }
-.modal { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,.6); display: grid; place-items: center; padding: 16px; }
-.modal[hidden] { display: none; }
-.modal-box {
-  width: min(1200px, 100%); height: min(940px, 100%); display: flex; flex-direction: column;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
-}
-.modal-head { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 12px 16px 4px; flex-wrap: wrap; }
-.modal-note { margin: 0; padding: 0 16px 10px; }
-.modal-frame { flex: 1; min-height: 0; overflow: hidden; background: #fff; }
-/* ดันกรอบขึ้น 160px ให้แถบเมนูที่ สนน. ปักหมุดไว้ด้านบนพ้นขอบ (สูง ~124–160px ตามความยาวชื่อสถานี) */
-#histFrame { display: block; border: 0; height: calc(100% + 160px); margin-top: -160px; width: 100%; max-width: none; }
+/* กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ (iframe ย่อด้วย transform ใน pages.js) */
+.hist-frame { position: relative; overflow: hidden; background: #fff; border-top: 1px solid var(--line); min-height: 120px; }
+.hist-frame iframe { position: absolute; left: 0; top: 0; border: 0; max-width: none; transform-origin: 0 0; opacity: 0; transition: opacity .3s; }
+.hist-frame.ready iframe { opacity: 1; }
+.hist-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; }
+.hist-frame.ready .hist-msg { display: none; }
+
+/* แผนผังระยะห่างระหว่างจุดวัด */
+.dist-head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 14px 0 4px; }
+.dist-map { overflow-x: auto; }
+.dist-map svg { display: block; font-family: inherit; }
+.dm-canal { stroke: var(--water); stroke-width: 6; stroke-linecap: round; opacity: .55; }
+.dm-dim { stroke: var(--muted); stroke-width: 1; }
+.dm-tick, .dm-lead { stroke: var(--muted); stroke-width: 1; }
+.dm-lead { stroke-dasharray: 2 2; }
+.dm-seg { font-size: 12px; font-weight: 600; fill: var(--ink-2); }
+.dm-end { font-size: 11px; fill: var(--muted); }
+.dm-name { font-size: 12px; fill: var(--ink-2); }
+.dm-km { font-size: 11px; fill: var(--muted); }
+.dm-pt { fill: var(--panel); stroke: var(--water); stroke-width: 3; }
+.dm-gate { fill: var(--gate); }
+.dm-stn { cursor: pointer; outline: none; }
+.dm-stn:hover .dm-name, .dm-stn:focus .dm-name { fill: var(--accent); }
+.dm-stn.on .dm-name { fill: var(--accent); font-weight: 700; }
+.dm-stn.on .dm-pt { fill: var(--accent); stroke: var(--accent); }
+.dm-stn.on .dm-gate { fill: var(--accent); }
 
 /* ---------- lightbox ---------- */
 .lightbox { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.82); display: grid; place-items: center; padding: 16px; cursor: zoom-out; }

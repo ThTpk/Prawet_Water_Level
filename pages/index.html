@@ -45,6 +45,12 @@
     <div class="frame-wrap">
       <iframe name="bmaProfile" id="bmaProfile" title="แผนภาพระดับน้ำคลองประเวศ จากสำนักการระบายน้ำ" loading="eager"></iframe>
     </div>
+    <!-- กราฟของ สนน. วางจุดห่างเท่ากัน จึงแสดงระยะจริงแยกไว้ใต้กราฟ -->
+    <div class="dist-head">
+      <h3>ระยะห่างระหว่างจุดวัดตามแนวคลอง</h3>
+      <span class="muted small">ระยะโดยประมาณ (เส้นตรงระหว่างพิกัดสถานี) · รวม ~28.3 กม. · คลิกจุดเพื่อดูภาพและกราฟ</span>
+    </div>
+    <div class="dist-map" id="distMap"></div>
   </section>
 
   <section>
@@ -72,22 +78,6 @@
     · ข้อมูลทั้งหมดโหลดสดจากเว็บ สนน. ทุกครั้งที่เปิดหน้า · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
   </footer>
 </main>
-
-<div id="histModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="histTitle">
-  <div class="modal-box">
-    <header class="modal-head">
-      <h2 id="histTitle">กราฟระดับน้ำย้อนหลัง</h2>
-      <div class="head-right">
-        <a id="histLink" class="small" href="#" target="_blank" rel="noopener">เปิดหน้า สนน. ↗</a>
-        <button id="histClose" class="btn small" aria-label="ปิด">ปิด ✕</button>
-      </div>
-    </header>
-    <p class="muted small modal-note">หน้าสถานีของ สนน. (ข้อมูลย้อนหลัง ~2 วัน) — ถ้ากราฟไม่อยู่ในกรอบพอดี เลื่อนขึ้นลงในกรอบได้</p>
-    <div class="modal-frame">
-      <iframe id="histFrame" title="กราฟระดับน้ำย้อนหลังจากสำนักการระบายน้ำ"></iframe>
-    </div>
-  </div>
-</div>
 
 <div id="lightbox" class="lightbox" hidden>
   <figure><img alt=""><figcaption></figcaption></figure>
