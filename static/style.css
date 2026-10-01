@@ -189,6 +189,17 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .graph-frame.ready iframe { opacity: 1; }
 .graph-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #7b8794; }
 .graph-frame.ready .graph-msg { display: none; }
+/* กราฟขยายเต็มจอ (ปุ่ม "ขยายกราฟ") */
+.graph-bar { display: none; }
+.graph-frame.zoomed { position: fixed; inset: 0; z-index: 500; height: auto !important; border: 0; background: rgba(0, 0, 0, .85); cursor: zoom-out; }
+.graph-frame.zoomed .graph-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  height: 52px; padding: 0 12px; color: #fff; font-size: 15px; cursor: default;
+}
+.graph-frame.zoomed .graph-bar b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.graph-frame.zoomed .graph-msg { color: #fff; }
+body.graph-open { overflow: hidden; }
+.st-card footer { align-items: center; }
 
 
 /* แผนผังระยะห่างระหว่างจุดวัด */

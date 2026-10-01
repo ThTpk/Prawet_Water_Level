@@ -199,6 +199,17 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .graph-frame.ready iframe { opacity: 1; }
 .graph-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #7b8794; }
 .graph-frame.ready .graph-msg { display: none; }
+/* กราฟขยายเต็มจอ (ปุ่ม "ขยายกราฟ") */
+.graph-bar { display: none; }
+.graph-frame.zoomed { position: fixed; inset: 0; z-index: 500; height: auto !important; border: 0; background: rgba(0, 0, 0, .85); cursor: zoom-out; }
+.graph-frame.zoomed .graph-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  height: 52px; padding: 0 12px; color: #fff; font-size: 15px; cursor: default;
+}
+.graph-frame.zoomed .graph-bar b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.graph-frame.zoomed .graph-msg { color: #fff; }
+body.graph-open { overflow: hidden; }
+.st-card footer { align-items: center; }
 
 
 /* แผนผังระยะห่างระหว่างจุดวัด */
@@ -397,9 +408,13 @@ function renderCards() {
         <img alt="ภาพรูปตัดและระดับน้ำ ${esc(s.name)}" referrerpolicy="no-referrer">
         <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — แตะเพื่อลองใหม่</span>
       </button>
-      <div class="graph-frame" data-id="${s.id}"><p class="graph-msg small">กำลังโหลดกราฟระดับน้ำจาก สนน.…</p></div>
+      <div class="graph-frame" data-id="${s.id}">
+        <div class="graph-bar"><b>${esc(s.name)}</b><button class="btn small graph-close" aria-label="ปิดกราฟขนาดใหญ่">✕ ปิด</button></div>
+        <p class="graph-msg small">กำลังโหลดกราฟระดับน้ำจาก สนน.…</p>
+      </div>
       <footer class="small">
-        <span class="muted">ระดับน้ำและเกณฑ์อยู่ในภาพ (ม.รทก.)</span>
+        <span class="muted">ระดับน้ำและเกณฑ์อยู่ในภาพ (ม.รทก.) · ลากบนกราฟเพื่อซูมช่วงเวลา</span>
+        <button class="btn small ghost graph-zoom" data-id="${s.id}">⤢ ขยายกราฟ</button>
         <a href="${BMA}/StationDetail?id=${s.id}${HIST_ANCHOR}" target="_blank" rel="noopener noreferrer">ดูกราฟระดับน้ำย้อนหลังที่หน้า สนน. ↗</a>
       </footer>
     </article>`;
@@ -471,7 +486,9 @@ function loadImg(id, force = false) {
 /* ---------- กราฟระดับน้ำย้อนหลัง (หน้า GraphOnIframe ของ สนน.) ----------
    หน้ากราฟสูงคงที่ 150px (+ ขอบ body 8px) และกว้างเต็มกรอบ → จอกว้างวาดที่ความกว้าง GRAPH_BASE_W
    แล้วขยายทั้งกรอบด้วย transform ให้กราฟสูงขึ้นตามสัดส่วน (มือถือไม่ขยาย)
-   กราฟที่โหลดแล้วเก็บไว้ (ไม่ยิงซ้ำ) จนถึงรอบรีเฟรช */
+   กราฟที่โหลดแล้วเก็บไว้ (ไม่ยิงซ้ำ) จนถึงรอบรีเฟรช
+   ปุ่ม "ขยายกราฟ": ทำให้กรอบเดิมเต็มจอ (CSS .zoomed) แล้วขยายใหม่ — ไม่ย้าย iframe จึงไม่โหลดซ้ำ ไม่ยิง สนน. เพิ่ม
+   (กราฟของ สนน. ตั้ง zoomType: 'x' ไว้แล้ว ลากเมาส์/นิ้วบนกราฟเพื่อซูมช่วงเวลาได้ทั้งแบบปกติและแบบขยาย) */
 const GRAPH_PAGE_H = 166;
 const GRAPH_BASE_W = 560;
 function loadGraph(id, force = false) {
@@ -491,14 +508,35 @@ function loadGraph(id, force = false) {
   fitGraph(box);
   f.src = graphUrl(st, Date.now());
 }
+const GRAPH_ZOOM_BAR = 52;   // แถบชื่อจุด + ปุ่มปิด ตอนขยายเต็มจอ
 function fitGraph(box) {
   const f = box && $("iframe", box);
   if (!f || !box.clientWidth) return;
+  if (box.classList.contains("zoomed")) {
+    // เต็มจอ: ขยายให้กว้างเต็มจอ แต่ไม่สูงเกินพื้นที่ใต้แถบ แล้ววางกลางแนวตั้ง
+    const W = box.clientWidth - 24, H = box.clientHeight - GRAPH_ZOOM_BAR - 12;
+    const s = Math.max(Math.min(W / GRAPH_BASE_W, H / GRAPH_PAGE_H), 1);
+    f.style.width = `${W / s}px`;
+    f.style.height = `${GRAPH_PAGE_H}px`;
+    f.style.left = "12px";
+    f.style.top = `${GRAPH_ZOOM_BAR + Math.max(0, (H - GRAPH_PAGE_H * s) / 2)}px`;
+    f.style.transform = `scale(${s})`;
+    return;
+  }
   const s = Math.min(Math.max(box.clientWidth / GRAPH_BASE_W, 1), 1.6);
   f.style.width = `${box.clientWidth / s}px`;
   f.style.height = `${GRAPH_PAGE_H}px`;
+  f.style.left = f.style.top = "0";
   f.style.transform = `scale(${s})`;
   box.style.height = `${Math.round(GRAPH_PAGE_H * s)}px`;
+}
+const zoomedGraph = () => $(".graph-frame.zoomed");
+function zoomGraph(box, on) {
+  if (!box) return;
+  box.classList.toggle("zoomed", on);
+  document.body.classList.toggle("graph-open", on);
+  fitGraph(box);
+  if (on) $(".graph-close", box).focus({ preventScroll: true });
 }
 
 let lastRefresh = 0;
@@ -618,7 +656,7 @@ window.addEventListener("resize", () => {
   if (window.innerWidth === lastW) return;
   lastW = window.innerWidth;
   clearTimeout(rz);
-  rz = setTimeout(() => { drawDistMap(); fitGraph($(`.graph-frame[data-id="${currentId}"]`)); }, 150);
+  rz = setTimeout(() => { drawDistMap(); fitGraph(zoomedGraph() || $(`.graph-frame[data-id="${currentId}"]`)); }, 150);
 });
 
 $("#stnBar").addEventListener("click", (e) => {
@@ -626,6 +664,11 @@ $("#stnBar").addEventListener("click", (e) => {
   if (b) select(Number(b.dataset.id));
 });
 document.addEventListener("click", (e) => {
+  const z = e.target.closest(".graph-zoom");
+  if (z) { zoomGraph($(`.graph-frame[data-id="${z.dataset.id}"]`), true); return; }
+  // ปุ่มปิด หรือคลิกพื้นหลังรอบกราฟ (ตัวกราฟอยู่ใน iframe คลิกในกราฟไม่มาถึงตรงนี้)
+  const zb = zoomedGraph();
+  if (zb && (e.target.closest(".graph-close") || e.target === zb)) { zoomGraph(zb, false); return; }
   const b = e.target.closest(".img-btn");
   const lb = $("#lightbox");
   if (b && b.classList.contains("img-fail")) {      // แตะภาพที่โหลดไม่สำเร็จ = ลองใหม่ทันที
@@ -638,7 +681,8 @@ document.addEventListener("click", (e) => {
   } else if (e.target.closest("#lightbox")) lb.hidden = true;
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { $("#lightbox").hidden = true; return; }
+  if (e.key === "Escape") { $("#lightbox").hidden = true; zoomGraph(zoomedGraph(), false); return; }
+  if (zoomedGraph()) return;   // เปิดกราฟเต็มจออยู่ ไม่เปลี่ยนสถานีด้วยลูกศร
   // ลูกศรซ้าย/ขวา เปลี่ยนสถานี (เมื่อไม่ได้เปิดภาพขยายหรือพิมพ์อยู่)
   const busy = !$("#lightbox").hidden || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if (!busy && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
