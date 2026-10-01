@@ -1,22 +1,25 @@
-/* หน้าเว็บ Apps Script: ภาพโหลดสดจากเว็บ สนน. ในเบราว์เซอร์ของผู้ชม (ไม่มีเซิร์ฟเวอร์กลาง)
-   ไม่ฝังหน้าเว็บ สนน. (iframe) แล้ว: หน้าสถานีของ สนน. (และน่าจะ MapLetLeaf ด้วย) มีสคริปต์โหลด languages/th.json
-   วนไม่หยุด (~7 ครั้ง/วินาที ตลอดที่เปิดหน้า วัด 1 ต.ค. 2569) ทำให้ Cloudflare บล็อก IP ผู้ชม — จึงใช้เฉพาะภาพรูปตัด (1 คำขอต่อภาพ)
-   ส่วนกราฟเป็นลิงก์ให้เปิดที่เว็บ สนน. เอง */
+/* หน้าเว็บ Apps Script: ภาพและกราฟโหลดสดจากเว็บ สนน. ในเบราว์เซอร์ของผู้ชม (ไม่มีเซิร์ฟเวอร์กลาง)
+   - กราฟรายจุด: ฝังหน้า GraphOnIframe ของ สนน. (หน้ากราฟล้วนที่ สนน. ใช้ใน popup แผนที่ของตัวเอง)
+     โหลด languages/th.json ครั้งเดียว ไม่วนซ้ำ (วัด 1 ต.ค. 2569: 10 วินาที = 2 คำขอ)
+   - ไม่ฝังหน้าสถานี/MapLetLeaf/หน้าแรก: หน้าเหล่านั้นเรียก getElementById('Nav3') ซึ่งไม่มีในหน้า → error
+     → .catch โหลด th.json ใหม่ทันที วนไม่หยุด (~7 ครั้ง/วินาที) จน Cloudflare บล็อก IP ผู้ชม
+     กราฟทั้งคลองจึงเป็นลิงก์ให้เปิดที่เว็บ สนน. เอง */
 "use strict";
 
 const BMA = "https://weather.bangkok.go.th/water";
 
 // สถานีบนแผนภาพคลองประเวศ เรียงตะวันตก -> ตะวันออก (ตามหน้า MapLetLeaf, selriver=30_1)
 // km = ระยะสะสมโดยประมาณ (เส้นตรงระหว่างพิกัดสถานีของ สนน.)
+// wl = จำนวนเส้นระดับน้ำ (countwl ของหน้า GraphOnIframe = water_count จาก PageMap/GoogleMap): ประตูน้ำ/สถานีสูบ = 2
 const STATIONS = [
-  { id: 43, name: "ส.พระโขนง", kind: "สถานีสูบน้ำ", district: "คลองเตย", km: 0 },
-  { id: 238, name: "ค.ประเวศ ซ.อ่อนนุช 17", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 1.8 },
-  { id: 42, name: "ค.ประเวศฯ-วัดขจรฯ", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 5.1 },
-  { id: 40, name: "ปตร.คลองประเวศฯ-วัดกระทุ่มฯ", kind: "ประตูระบายน้ำ", district: "ประเวศ", km: 10.4 },
-  { id: 206, name: "ค.ตาพุก ถ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ประเวศ", km: 12.6 },
-  { id: 39, name: "ปตร.คลองประเวศฯ-ลาดกระบัง", kind: "ประตูระบายน้ำ", district: "ลาดกระบัง", km: 17.0 },
-  { id: 64, name: "ค.ประเวศฯ-รพ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 20.7 },
-  { id: 65, name: "ค.ประเวศฯ-ถ.ร่วมพัฒนา", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 28.3 },
+  { id: 43, name: "ส.พระโขนง", kind: "สถานีสูบน้ำ", district: "คลองเตย", km: 0, wl: 2 },
+  { id: 238, name: "ค.ประเวศ ซ.อ่อนนุช 17", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 1.8, wl: 1 },
+  { id: 42, name: "ค.ประเวศฯ-วัดขจรฯ", kind: "จุดวัดระดับน้ำ", district: "สวนหลวง", km: 5.1, wl: 1 },
+  { id: 40, name: "ปตร.คลองประเวศฯ-วัดกระทุ่มฯ", kind: "ประตูระบายน้ำ", district: "ประเวศ", km: 10.4, wl: 2 },
+  { id: 206, name: "ค.ตาพุก ถ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ประเวศ", km: 12.6, wl: 1 },
+  { id: 39, name: "ปตร.คลองประเวศฯ-ลาดกระบัง", kind: "ประตูระบายน้ำ", district: "ลาดกระบัง", km: 17.0, wl: 2 },
+  { id: 64, name: "ค.ประเวศฯ-รพ.ลาดกระบัง", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 20.7, wl: 1 },
+  { id: 65, name: "ค.ประเวศฯ-ถ.ร่วมพัฒนา", kind: "จุดวัดระดับน้ำ", district: "ลาดกระบัง", km: 28.3, wl: 1 },
 ];
 
 // ลิงก์ไปเว็บ สนน. ต่อท้ายด้วย #id เปิดแล้วเลื่อนไปที่กราฟเลย (วัด 1 ต.ค. 2569)
@@ -34,6 +37,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 let currentId = START_STATION_ID;
 
 const imgUrl = (id, t) => `${BMA}/StationDetail/CreateCrossection?id=${id}&_=${t}`;
+const graphUrl = (s, t) => `${BMA}/GraphOnIframe/Index?id=${s.id}&countwl=${s.wl}&_=${t}`;
 const isGate = (s) => s.kind !== "จุดวัดระดับน้ำ";
 
 function renderCards() {
@@ -48,6 +52,7 @@ function renderCards() {
         <img alt="ภาพรูปตัดและระดับน้ำ ${esc(s.name)}" referrerpolicy="no-referrer">
         <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — แตะเพื่อลองใหม่</span>
       </button>
+      <div class="graph-frame" data-id="${s.id}"><p class="graph-msg small">กำลังโหลดกราฟระดับน้ำจาก สนน.…</p></div>
       <footer class="small">
         <span class="muted">ระดับน้ำและเกณฑ์อยู่ในภาพ (ม.รทก.)</span>
         <a href="${BMA}/StationDetail?id=${s.id}${HIST_ANCHOR}" target="_blank" rel="noopener noreferrer">ดูกราฟระดับน้ำย้อนหลังที่หน้า สนน. ↗</a>
@@ -78,6 +83,7 @@ function select(id) {
   });
   markDist();
   loadImg(id);
+  loadGraph(id);
 }
 function step(dir) {
   const i = STATIONS.findIndex((s) => s.id === currentId);
@@ -117,12 +123,47 @@ function loadImg(id, force = false) {
   img.src = imgUrl(id, Date.now());
 }
 
+/* ---------- กราฟระดับน้ำย้อนหลัง (หน้า GraphOnIframe ของ สนน.) ----------
+   หน้ากราฟสูงคงที่ 150px (+ ขอบ body 8px) และกว้างเต็มกรอบ → จอกว้างวาดที่ความกว้าง GRAPH_BASE_W
+   แล้วขยายทั้งกรอบด้วย transform ให้กราฟสูงขึ้นตามสัดส่วน (มือถือไม่ขยาย)
+   กราฟที่โหลดแล้วเก็บไว้ (ไม่ยิงซ้ำ) จนถึงรอบรีเฟรช */
+const GRAPH_PAGE_H = 166;
+const GRAPH_BASE_W = 560;
+function loadGraph(id, force = false) {
+  const box = $(`.graph-frame[data-id="${id}"]`);
+  const st = STATIONS.find((s) => s.id === id);
+  if (!box || !st || (!force && box.dataset.loaded)) return;
+  box.dataset.loaded = "1";
+  box.classList.remove("ready");
+  $("iframe", box)?.remove();
+  const f = document.createElement("iframe");
+  f.title = `กราฟระดับน้ำย้อนหลัง ${st.name} จากสำนักการระบายน้ำ`;
+  f.scrolling = "no";
+  f.tabIndex = -1;
+  f.referrerPolicy = "no-referrer";
+  f.onload = () => box.classList.add("ready");
+  box.appendChild(f);
+  fitGraph(box);
+  f.src = graphUrl(st, Date.now());
+}
+function fitGraph(box) {
+  const f = box && $("iframe", box);
+  if (!f || !box.clientWidth) return;
+  const s = Math.min(Math.max(box.clientWidth / GRAPH_BASE_W, 1), 1.6);
+  f.style.width = `${box.clientWidth / s}px`;
+  f.style.height = `${GRAPH_PAGE_H}px`;
+  f.style.transform = `scale(${s})`;
+  box.style.height = `${Math.round(GRAPH_PAGE_H * s)}px`;
+}
+
 let lastRefresh = 0;
 function refresh() {
   lastRefresh = Date.now();
   // ภาพทุกจุดถือว่าเก่า: จุดที่เลือกโหลดใหม่ตอนนี้ จุดอื่นโหลดใหม่เมื่อถูกเลือก
   $$(".img-btn img").forEach((img) => { if (img.dataset.state !== "loading") delete img.dataset.state; img.dataset.tries = 0; });
   loadImg(currentId);
+  $$(".graph-frame").forEach((b) => delete b.dataset.loaded);   // จุดอื่นโหลดกราฟใหม่เมื่อถูกเลือก
+  loadGraph(currentId);
   const d = new Date();
   const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
   $("#lastUpdate").textContent = `โหลดเมื่อ ${hm} น.`;
@@ -232,7 +273,7 @@ window.addEventListener("resize", () => {
   if (window.innerWidth === lastW) return;
   lastW = window.innerWidth;
   clearTimeout(rz);
-  rz = setTimeout(drawDistMap, 150);
+  rz = setTimeout(() => { drawDistMap(); fitGraph($(`.graph-frame[data-id="${currentId}"]`)); }, 150);
 });
 
 $("#stnBar").addEventListener("click", (e) => {

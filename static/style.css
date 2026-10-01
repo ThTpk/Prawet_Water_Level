@@ -183,6 +183,12 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .stn-btn.on small { color: rgba(255, 255, 255, .85); }
 .stn-btn.on .n { background: rgba(255, 255, 255, .22); color: #fff; }
 .stn-view { max-width: 920px; margin: 0 auto; }
+/* กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ (iframe ขยายด้วย transform ใน pages.js fitGraph) */
+.graph-frame { position: relative; overflow: hidden; background: #fff; border-top: 1px solid var(--line); height: 166px; }
+.graph-frame iframe { position: absolute; left: 0; top: 0; border: 0; max-width: none; transform-origin: 0 0; background: #fff; opacity: 0; transition: opacity .3s; }
+.graph-frame.ready iframe { opacity: 1; }
+.graph-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #7b8794; }
+.graph-frame.ready .graph-msg { display: none; }
 
 
 /* แผนผังระยะห่างระหว่างจุดวัด */
