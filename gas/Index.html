@@ -174,11 +174,11 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .frame-wrap.ready #bmaProfile { opacity: 1; }
 .frame-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; }
 .frame-wrap.ready .frame-msg { display: none; }
-/* มือถือ: กราฟขนาดจริง เลื่อนซ้าย-ขวา (pages.js fitFrame ใส่ .prof-scrolling ที่ body) */
+/* มือถือ: กราฟขนาดจริง เลื่อนซ้าย-ขวาด้วยแถบใต้กราฟ (pages.js fitFrame ใส่ .prof-scrolling ที่ body) */
 .prof-scroll { display: none; }
-.prof-scrolling .frame-wrap { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+/* ไม่มีแถบเลื่อนในกล่องกราฟ เลื่อนด้วยแถบ #profScroll ใต้กราฟเท่านั้น (กล่องยัง overflow: hidden) */
 .prof-scrolling .prof-scroll { display: block; margin-top: 8px; }
-#profScroll { width: 100%; margin: 0; accent-color: var(--accent); }
+#profScroll { width: 100%; height: 28px; margin: 0; accent-color: var(--accent); }
 .rotate-hint { margin: 4px 0 0; color: var(--muted); }
 .rotate-hint::before { content: "⟳ "; }
 @media (orientation: landscape) { .rotate-hint { display: none; } }
@@ -377,10 +377,10 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
                 loading="eager" scrolling="no" tabindex="-1"></iframe>
       </div>
     </div>
-    <!-- มือถือ: กราฟขนาดจริง เลื่อนซ้าย-ขวา (แถบเลื่อนใช้ได้แม้นิ้วปัดบนกราฟถูกกราฟจับไว้) -->
+    <!-- มือถือ: กราฟขนาดจริง เลื่อนซ้าย-ขวาด้วยแถบนี้ (กล่องกราฟไม่มีแถบเลื่อนของตัวเอง) -->
     <div class="prof-scroll">
       <input type="range" id="profScroll" min="0" max="1000" value="0" aria-label="เลื่อนกราฟซ้าย-ขวา">
-      <p class="rotate-hint small">หมุนจอเป็นแนวนอนเพื่อดูกราฟได้กว้างขึ้น · ปัดกราฟหรือลากแถบด้านบนเพื่อเลื่อนซ้าย-ขวา</p>
+      <p class="rotate-hint small">หมุนจอเป็นแนวนอนเพื่อดูกราฟได้กว้างขึ้น · ลากแถบด้านบนเพื่อเลื่อนกราฟซ้าย-ขวา</p>
     </div>
     <!-- กราฟของ สนน. วางจุดห่างเท่ากัน จึงแสดงระยะจริงแยกไว้ใต้กราฟ -->
     <div class="dist-head">
@@ -690,7 +690,7 @@ const PROFILE_CROP_X = 280;   // กราฟอยู่ราว x≈305–141
 const PROFILE_CROP_Y = 1009;
 const PROFILE_VIEW_W = 1190;
 const PROFILE_VIEW_H = 712;
-// มือถือ (จอแคบ หรือมือถือแนวนอน): กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาในกล่อง
+// มือถือ (จอแคบ หรือมือถือแนวนอน): กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาด้วยแถบ #profScroll
 // ไอแพด/คอมพิวเตอร์: ย่อพอดีความกว้างกล่อง
 function profileScrollMode() {
   const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600;

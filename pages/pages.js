@@ -261,7 +261,7 @@ const PROFILE_CROP_X = 280;   // กราฟอยู่ราว x≈305–141
 const PROFILE_CROP_Y = 1009;
 const PROFILE_VIEW_W = 1190;
 const PROFILE_VIEW_H = 712;
-// มือถือ (จอแคบ หรือมือถือแนวนอน): กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาในกล่อง
+// มือถือ (จอแคบ หรือมือถือแนวนอน): กราฟขนาดจริงไม่ย่อ เลื่อนซ้าย-ขวาด้วยแถบ #profScroll
 // ไอแพด/คอมพิวเตอร์: ย่อพอดีความกว้างกล่อง
 function profileScrollMode() {
   const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600;
