@@ -148,7 +148,14 @@ function refresh() {
     loadHist(currentId, true);
   }
   const d = new Date();
-  $("#lastUpdate").textContent = `โหลดเมื่อ ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")} น.`;
+  const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+  $("#lastUpdate").textContent = `โหลดเมื่อ ${hm} น.`;
+  $("#fabTime").textContent = hm;
+  // ปุ่มลอยหมุนสักครู่ ให้รู้ว่ากำลังโหลด
+  const fab = $("#fabRefresh");
+  fab.classList.add("busy");
+  clearTimeout(refresh.t);
+  refresh.t = setTimeout(() => fab.classList.remove("busy"), 2500);
 }
 
 /* กราฟระดับน้ำคลองประเวศ (หน้า MapLetLeaf ของ สนน.) แบบล็อกไว้ ไม่มีแถบเลื่อน
@@ -383,6 +390,7 @@ window.addEventListener("resize", () => {
 fitFrame();
 
 $("#btnRefresh").addEventListener("click", refresh);
+$("#fabRefresh").addEventListener("click", refresh);
 $("#carPrev").addEventListener("click", () => step(-1));
 $("#carNext").addEventListener("click", () => step(1));
 $("#cards").addEventListener("scroll", onTrackScroll, { passive: true });

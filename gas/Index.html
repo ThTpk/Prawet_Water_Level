@@ -293,6 +293,32 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
   .foot { padding: 0 4px; }
 }
 
+/* ---------- ปุ่มโหลดใหม่แบบลอย (มือถือ) ---------- */
+.fab { display: none; }
+@media (max-width: 760px) {
+  /* หัวเว็บเหลือแค่ชื่อ แถบโหลดใหม่ย้ายไปเป็นปุ่มลอย หน้าจอจึงแสดงเนื้อหาได้เต็มที่ */
+  .top-actions { display: none; }
+  .top { position: static; flex-direction: row; padding: 8px 12px; }
+  .top h1 { font-size: 16px; }
+  .top .sub { font-size: 12px; }
+  .fab {
+    position: fixed; z-index: 300;
+    right: calc(14px + env(safe-area-inset-right));
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 46px; padding: 0 16px 0 13px; border: 0; border-radius: 999px;
+    background: var(--accent); color: #fff; font: inherit; font-size: 14px; font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,.35); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fab:active { transform: scale(.96); }
+  .fab svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .fab.busy svg { animation: fab-spin .9s linear infinite; }
+  main { padding-bottom: 80px; }  /* เว้นที่ให้ปุ่มลอยไม่บังเนื้อหาท้ายหน้า */
+}
+@keyframes fab-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .fab.busy svg { animation: none; } }
+
 </style>
 </head>
 <body>
@@ -369,6 +395,12 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
     · ข้อมูลทั้งหมดโหลดสดจากเว็บ สนน. ทุกครั้งที่เปิดหน้า · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
   </footer>
 </main>
+
+<!-- มือถือ: ปุ่มโหลดใหม่แบบลอย (แทนแถบในหัวเว็บ) -->
+<button id="fabRefresh" class="fab" aria-label="โหลดข้อมูลใหม่">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
+  <span id="fabTime"></span>
+</button>
 
 <div id="lightbox" class="lightbox" hidden>
   <figure><img alt=""><figcaption></figcaption></figure>
@@ -525,7 +557,14 @@ function refresh() {
     loadHist(currentId, true);
   }
   const d = new Date();
-  $("#lastUpdate").textContent = `โหลดเมื่อ ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")} น.`;
+  const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+  $("#lastUpdate").textContent = `โหลดเมื่อ ${hm} น.`;
+  $("#fabTime").textContent = hm;
+  // ปุ่มลอยหมุนสักครู่ ให้รู้ว่ากำลังโหลด
+  const fab = $("#fabRefresh");
+  fab.classList.add("busy");
+  clearTimeout(refresh.t);
+  refresh.t = setTimeout(() => fab.classList.remove("busy"), 2500);
 }
 
 /* กราฟระดับน้ำคลองประเวศ (หน้า MapLetLeaf ของ สนน.) แบบล็อกไว้ ไม่มีแถบเลื่อน
@@ -760,6 +799,7 @@ window.addEventListener("resize", () => {
 fitFrame();
 
 $("#btnRefresh").addEventListener("click", refresh);
+$("#fabRefresh").addEventListener("click", refresh);
 $("#carPrev").addEventListener("click", () => step(-1));
 $("#carNext").addEventListener("click", () => step(1));
 $("#cards").addEventListener("scroll", onTrackScroll, { passive: true });
