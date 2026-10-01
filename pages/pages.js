@@ -36,22 +36,23 @@ const BMA_PAGE_H = 3400;        // สูงกว่าทั้งหน้า
 const HIST_TOP_PAD = 6;         // เผื่อขอบเหนือแถบหัวข้อ
 const histMode = (box) => (box.clientWidth < HIST_MOBILE_BELOW ? "mobile" : "desktop");
 
-// สถานีที่แสดงเป็นภาพแรกเมื่อเปิดหน้า
+// สถานีที่แสดงเมื่อเปิดหน้า (จุดอื่นโหลดเมื่อกดปุ่มเท่านั้น)
 const START_STATION_ID = 39; // ปตร.คลองประเวศฯ-ลาดกระบัง
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-let filter = "all";
 let currentId = START_STATION_ID;
+let profileOn = false;   // กดแสดงแผนภาพทั้งคลองแล้ว
 
 const imgUrl = (id, t) => `${BMA}/StationDetail/CreateCrossection?id=${id}&_=${t}`;
 const stationUrl = (id, t) => `${BMA}/StationDetail?id=${id}&_=${t}`;
+const isGate = (s) => s.kind !== "จุดวัดระดับน้ำ";
 
-function renderCards(t) {
+function renderCards() {
   $("#cards").innerHTML = STATIONS.map((s, i) => {
-    const gate = s.kind !== "จุดวัดระดับน้ำ";
-    return `<article class="st-card" id="st-${s.id}" data-gate="${gate ? 1 : 0}" style="--c:${gate ? "var(--gate)" : "var(--water)"}">
+    const gate = isGate(s);
+    return `<article class="st-card" id="st-${s.id}" style="--c:${gate ? "var(--gate)" : "var(--water)"}" hidden>
       <header>
         <div class="num">${i + 1}</div>
         <div class="ttl"><h3>${esc(s.name)}</h3><p class="muted small">${esc(s.kind)} · ${esc(s.district)}</p></div>
@@ -69,89 +70,59 @@ function renderCards(t) {
       </footer>
     </article>`;
   }).join("");
-  $("#carChips").innerHTML = STATIONS.map((s, i) =>
-    `<button class="chip" role="tab" data-id="${s.id}" data-gate="${s.kind !== "จุดวัดระดับน้ำ" ? 1 : 0}"
-             title="${esc(s.name)}">${i + 1}. ${esc(s.name)}</button>`).join("");
-  applyFilter();
-}
-function applyFilter() {
-  $$(".st-card, .chip").forEach((c) => (c.hidden = filter === "gate" && c.dataset.gate !== "1"));
-  const vis = visibleIds();
-  goTo(vis.includes(currentId) ? currentId : vis[0], false);
+  $("#stnBar").innerHTML = STATIONS.map((s, i) =>
+    `<button class="stn-btn" role="tab" data-id="${s.id}" style="--c:${isGate(s) ? "var(--gate)" : "var(--water)"}"
+             title="${esc(s.name)} · ${esc(s.kind)}"><span class="n">${i + 1}</span>
+       <span><b>${esc(s.name)}</b><small>${esc(s.kind)}</small></span></button>`).join("");
 }
 
-/* ---------- เลื่อนซ้าย-ขวาทีละสถานี ---------- */
-const visibleIds = () => $$(".st-card:not([hidden])").map((c) => Number(c.id.slice(3)));
-
-function goTo(id, smooth = true) {
-  const card = $(`#st-${id}`), track = $("#cards");
-  if (!card) return;
+/* ---------- เลือกจุด: แสดงการ์ดของจุดนั้น แล้วโหลดภาพ + กราฟเฉพาะจุดนั้น ---------- */
+function select(id) {
+  if (!STATIONS.some((s) => s.id === id)) return;
   currentId = id;
-  track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: smooth ? "smooth" : "auto" });
-  markCurrent();
-}
-function step(dir) {
-  const vis = visibleIds();
-  const i = vis.indexOf(currentId);
-  goTo(vis[(i + dir + vis.length) % vis.length]);   // วนรอบเมื่อสุดปลาย
-}
-function markCurrent() {
-  const vis = visibleIds();
-  $$(".chip").forEach((c) => {
-    const on = Number(c.dataset.id) === currentId;
-    c.classList.toggle("on", on);
-    c.setAttribute("aria-selected", String(on));
-    if (on) {  // เลื่อนเฉพาะแถบชิป ไม่ให้ทั้งหน้ากระโดด
-      const bar = $("#carChips");
-      const left = c.offsetLeft - bar.offsetLeft;
-      if (left < bar.scrollLeft || left + c.offsetWidth > bar.scrollLeft + bar.clientWidth)
-        bar.scrollTo({ left: left - (bar.clientWidth - c.offsetWidth) / 2, behavior: "smooth" });
+  // ทิ้งรายการในคิวของจุดอื่นที่ยังไม่เริ่ม (ไม่ยิง สนน. เพิ่มโดยไม่จำเป็น)
+  queue.splice(0, queue.length, ...queue.filter((t) => wanted(t.key)));
+  $$(".st-card").forEach((c) => (c.hidden = c.id !== `st-${id}`));
+  $$(".stn-btn").forEach((b) => {
+    const on = Number(b.dataset.id) === id;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-selected", String(on));
+    if (on) {  // แถบปุ่มเลื่อนแนวนอนบนมือถือ: เลื่อนเฉพาะแถบ ไม่ให้ทั้งหน้ากระโดด
+      const bar = $("#stnBar");
+      const left = b.offsetLeft - bar.offsetLeft;
+      if (left < bar.scrollLeft || left + b.offsetWidth > bar.scrollLeft + bar.clientWidth)
+        bar.scrollTo({ left: left - (bar.clientWidth - b.offsetWidth) / 2, behavior: "smooth" });
     }
   });
-  $$(".st-card").forEach((c) => c.setAttribute("aria-hidden", String(c.id !== `st-${currentId}`)));
-  $("#carPos").textContent = `${vis.indexOf(currentId) + 1} / ${vis.length}`;
+  markDist();
+  sizeHist($(`.hist-frame[data-id="${id}"]`));   // การ์ดเพิ่งแสดง → จัดขนาดกราฟที่เคยโหลดไว้
+  queueStation(id);
+}
+function step(dir) {
+  const i = STATIONS.findIndex((s) => s.id === currentId);
+  select(STATIONS[(i + dir + STATIONS.length) % STATIONS.length].id);   // วนรอบเมื่อสุดปลาย
+}
+const markDist = () =>
   $$("#distMap .dm-stn").forEach((g) => g.classList.toggle("on", Number(g.dataset.id) === currentId));
-  // ภาพ + กราฟย้อนหลังของสถานีที่แสดง ขึ้นหน้าคิว (หน่วงเล็กน้อย เผื่อกำลังกดเลื่อนผ่านหลายสถานี)
-  clearTimeout(markCurrent.t);
-  markCurrent.t = setTimeout(() => queueStation(currentId, true), 400);
-}
-// ปัดด้วยนิ้ว/ทัชแพด: อัปเดตสถานีปัจจุบันตามการ์ดที่อยู่กลางกรอบ
-let scrollT;
-function onTrackScroll() {
-  // ระหว่างโหลดกราฟ สนน. ถ้าแถบเลื่อนขยับเองโดยผู้ใช้ไม่ได้ทำ ให้กลับไปสถานีเดิม
-  if (autoScrollBlocked()) {
-    const card = $(`#st-${currentId}`), track = $("#cards");
-    if (card && Math.abs(track.scrollLeft - (card.offsetLeft - track.offsetLeft)) > 2) goTo(currentId, false);
-    return;
-  }
-  clearTimeout(scrollT);
-  scrollT = setTimeout(() => {
-    const track = $("#cards");
-    const mid = track.scrollLeft + track.clientWidth / 2;
-    const card = $$(".st-card:not([hidden])", track)
-      .find((c) => c.offsetLeft - track.offsetLeft <= mid && mid < c.offsetLeft - track.offsetLeft + c.offsetWidth);
-    if (card && Number(card.id.slice(3)) !== currentId) { currentId = Number(card.id.slice(3)); markCurrent(); }
-  }, 80);
-}
 
-/* ---------- คิวโหลดจากเว็บ สนน. (พร้อมกันครั้งละ MAX_PARALLEL รายการ) ----------
-   รายการหนึ่งเสร็จ (หรือเกิน TASK_TIMEOUT) รายการถัดไปในคิวเริ่มทันที ลำดับที่เริ่ม:
-   กราฟหลัก → ภาพสถานีที่แสดง → กราฟย้อนหลังสถานีที่แสดง → ภาพสถานีอื่น (ใกล้ก่อน)
-   เว็บ สนน. (IIS) อาจตอบ 403 ชั่วคราวเมื่อขอพร้อมกันมาก จึงยังมีการลองใหม่:
+/* ---------- คิวโหลดจากเว็บ สนน. (ทีละรายการ) ----------
+   โหลดเฉพาะจุดที่เลือก (ภาพ → กราฟย้อนหลัง) และกราฟทั้งคลองเมื่อกดแสดงเท่านั้น
+   เว็บ สนน. (อยู่หลัง Cloudflare) บล็อกเมื่อเรียกถี่/พร้อมกันมาก จึงโหลดทีละรายการ และลองใหม่แบบเว้นระยะ:
    - หน้า 403 เล็กมาก โหลดเสร็จเร็วผิดปกติ (หน้าจริงใช้หลายวินาที) → ถือว่าถูกปฏิเสธ
-   - รายการที่ถูกปฏิเสธ นำกลับเข้าคิวอีกครั้งหลัง 4 / 8 / 15 / 30 / 60 วินาที
-   - ภาพที่ยังไม่สำเร็จ แตะที่ภาพเพื่อลองใหม่ทันที
-   (ถ้าอยากกลับไปโหลดทีละรายการ ตั้ง MAX_PARALLEL = 1) */
+   - รายการที่ถูกปฏิเสธ นำกลับเข้าคิวอีกครั้งหลัง 5 / 15 / 30 / 60 วินาที (ถ้ายังเป็นจุดที่เลือกอยู่)
+   - ภาพที่ยังไม่สำเร็จ แตะที่ภาพเพื่อลองใหม่ทันที */
 const FAST_FAIL_MS = 2000;
-const RETRY_DELAYS = [4000, 8000, 15000, 30000, 60000];
-const MAX_PARALLEL = 6;   // โหลดพร้อมกันได้สูงสุด 6 รายการ (มากไป สนน. อาจตอบ 403 → มีลองใหม่)
+const RETRY_DELAYS = [5000, 15000, 30000, 60000];
+const MAX_PARALLEL = 1;
 const TASK_TIMEOUT = 40000;
 const queue = [];
 const running = new Set();   // key ของรายการที่กำลังโหลด
+// โหลดเฉพาะของจุดที่เลือกอยู่ และกราฟทั้งคลอง (ถ้ากดแสดงแล้ว)
+const wanted = (key) => (key === "profile" ? profileOn : key === `img${currentId}` || key === `hist${currentId}`);
 
 // key ซ้ำในคิว/กำลังโหลด = ไม่เพิ่มซ้ำ; front = ขึ้นหน้าคิว (ถ้ามีอยู่แล้วก็ย้ายขึ้นหน้า)
 function enqueue(key, run, front = false) {
-  if (running.has(key)) return;
+  if (!wanted(key) || running.has(key)) return;
   const i = queue.findIndex((t) => t.key === key);
   if (i >= 0) { if (!front) return; queue.splice(i, 1); }
   const task = { key, run };
@@ -187,10 +158,19 @@ function profileTask(done) {
   guardScroll(15000);                     // หน้า สนน. ในกรอบอาจลากหน้าเราเลื่อนระหว่างโหลด
   $("#frmProfile").submit();               // โหลดกราฟ MapLetLeaf ใหม่ใน iframe
 }
+function showProfile() {
+  profileOn = true;
+  $("#profileLoad").hidden = true;
+  $(".frame-wrap").hidden = false;
+  fitFrame();
+  profileState.tries = 0;
+  enqueue("profile", profileTask, true);
+}
 
 // ภาพรูปตัด/ประตูระบายน้ำ
 function imgTask(img) {
   return (done) => {
+    if (img.dataset.state === "ok" || img.dataset.state === "loading") return done();   // ลองใหม่ซ้อน/โหลดแล้ว
     const btn = img.closest(".img-btn");
     img.dataset.state = "loading";
     img.onload = () => { img.dataset.state = "ok"; img.dataset.tries = 0; done(); };
@@ -209,40 +189,26 @@ function imgTask(img) {
     img.src = imgUrl(btn.dataset.id, Date.now());
   };
 }
-// ภาพ + กราฟย้อนหลังของสถานีหนึ่ง (front = สถานีที่กำลังแสดง ขึ้นหน้าคิว)
-function queueStation(id, front = false) {
+// กราฟย้อนหลัง: ข้ามถ้าโหลดไปแล้ว (เช่น ลองใหม่ที่ค้างอยู่ หลังผู้ใช้กดกลับมาที่จุดนี้)
+const histTask = (id) => (done) => ($(`.hist-frame[data-id="${id}"]`)?.dataset.loaded ? done() : loadHist(id, done));
+// ภาพ → กราฟย้อนหลัง ของจุดที่เลือก (ส่วนที่โหลดไว้แล้วไม่โหลดซ้ำ จนถึงรอบรีเฟรช)
+function queueStation(id) {
   const img = $(`#st-${id} .img-btn img`);
   const box = $(`.hist-frame[data-id="${id}"]`);
-  const histPending = box && !box.dataset.loaded;
-  const imgPending = img && !img.dataset.state;
-  // เข้าหน้าคิวแบบกลับลำดับ เพื่อให้ได้ ภาพ → กราฟย้อนหลัง
-  if (histPending) enqueue(`hist${id}`, (done) => loadHist(id, done), front);
-  if (imgPending) enqueue(`img${id}`, imgTask(img), front);
-}
-function queueOtherImages() {
-  const order = STATIONS.map((s, i) => ({ id: s.id, i }));
-  const cur = order.findIndex((o) => o.id === currentId);
-  order.sort((a, b) => Math.abs(a.i - cur) - Math.abs(b.i - cur));
-  order.forEach(({ id }) => {
-    const img = $(`#st-${id} .img-btn img`);
-    if (img && !img.dataset.state) enqueue(`img${id}`, imgTask(img));
-  });
+  if (img && (!img.dataset.state || img.dataset.state === "retry")) enqueue(`img${id}`, imgTask(img));
+  if (box && !box.dataset.loaded) enqueue(`hist${id}`, histTask(id));
 }
 
+let lastRefresh = 0;
 function refresh() {
-  const t = Date.now();
-  if (!$("#cards").children.length) renderCards(t);
-  // เริ่มคิวใหม่ทั้งหมด (รายการที่กำลังโหลดอยู่ปล่อยให้เสร็จ)
+  lastRefresh = Date.now();
+  // เริ่มคิวใหม่ (รายการที่กำลังโหลดอยู่ปล่อยให้เสร็จ) จุดอื่นจะโหลดใหม่เมื่อถูกเลือก
   queue.length = 0;
   $$(".img-btn").forEach((b) => b.classList.remove("img-fail"));
-  $$(".img-btn img").forEach((img) => { delete img.dataset.state; img.dataset.tries = 0; });
+  $$(".img-btn img").forEach((img) => { if (img.dataset.state !== "loading") delete img.dataset.state; img.dataset.tries = 0; });
   $$(".hist-frame").forEach((b) => { delete b.dataset.loaded; b.dataset.tries = 0; });
-  profileState.tries = 0;
-  enqueue("profile", profileTask);
-  const cur = $(`#st-${currentId} .img-btn img`);
-  enqueue(`img${currentId}`, imgTask(cur));
-  enqueue(`hist${currentId}`, (done) => loadHist(currentId, done));
-  queueOtherImages();
+  if (profileOn) { profileState.tries = 0; enqueue("profile", profileTask); }
+  queueStation(currentId);
   const d = new Date();
   const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
   $("#lastUpdate").textContent = `โหลดเมื่อ ${hm} น.`;
@@ -314,7 +280,7 @@ function drawDistMapVertical(box) {
     svgEl("text", { x: LX + 20, y: y + 14, class: "dm-km" }, g, `กม. ${s.km.toFixed(1)} · ${s.kind}`);
   });
   box.replaceChildren(svg);
-  markCurrent();
+  markDist();
 }
 
 function drawDistMap() {
@@ -363,29 +329,24 @@ function drawDistMap() {
     el("text", { x: tx, y: ly + 17, "text-anchor": anchor, class: "dm-km" }, g, `กม. ${s.km.toFixed(1)}`);
   });
   box.replaceChildren(svg);
-  markCurrent();
+  markDist();
 }
 function onDistPick(e) {
   const g = e.target.closest(".dm-stn");
   if (!g || (e.type === "keydown" && e.key !== "Enter" && e.key !== " ")) return;
   e.preventDefault();
-  if ($(`#st-${g.dataset.id}`).hidden) {   // จุดนี้ถูกกรองออก → กลับไปแสดงทุกจุด
-    filter = "all";
-    $$("#cardFilter button").forEach((x) => x.classList.toggle("on", x.dataset.f === "all"));
-    $$(".st-card, .chip").forEach((c) => (c.hidden = false));
-  }
-  goTo(Number(g.dataset.id));
-  $("#carousel").scrollIntoView({ behavior: "smooth", block: "center" });
+  select(Number(g.dataset.id));
+  $("#stations").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /* ---------- กราฟระดับน้ำย้อนหลังของ สนน. ใต้ภาพ ---------- */
 function sizeHist(box) {
-  const f = $("iframe", box);
-  if (!f) return;
+  const f = box && $("iframe", box);
+  if (!f || !box.clientWidth) return;   // การ์ดที่ซ่อนอยู่ จัดขนาดตอนถูกเลือก
   // ความกว้างการ์ดข้ามเกณฑ์มือถือ/จอใหญ่ → ต้องโหลดหน้า สนน. แบบใหม่
   if (box.dataset.mode && box.dataset.mode !== histMode(box)) {
     delete box.dataset.loaded;
-    if (Number(box.dataset.id) === currentId) queueStation(currentId, true);
+    if (Number(box.dataset.id) === currentId) queueStation(currentId);
     return;
   }
   const L = HIST_LAYOUTS[box.dataset.mode || histMode(box)];
@@ -456,11 +417,12 @@ function loadHist(id, done = () => {}) {
   sizeHist(box);
   const started = Date.now();
   f.onload = () => {
-    // เสร็จเร็วผิดปกติ = ได้หน้า 403 ของ สนน. → กลับเข้าคิวอีกครั้งภายหลัง (สูงสุด 3 ครั้ง)
+    // เสร็จเร็วผิดปกติ = ได้หน้า 403 ของ สนน. → กลับเข้าคิวอีกครั้งภายหลัง (สูงสุด 4 ครั้ง)
     const tries = Number(box.dataset.tries || 0);
     if (Date.now() - started < FAST_FAIL_MS && tries < RETRY_DELAYS.length) {
       box.dataset.tries = tries + 1;
-      retryLater(`hist${id}`, (d) => loadHist(id, d), tries);
+      delete box.dataset.loaded;
+      retryLater(`hist${id}`, histTask(id), tries);
       return done();
     }
     box.dataset.tries = 0;
@@ -517,22 +479,16 @@ window.addEventListener("resize", () => {
   lastW = window.innerWidth;
   clearTimeout(rz);
   rz = setTimeout(() => {
-    fitFrame(); drawDistMap(); $$(".hist-frame").forEach(sizeHist); goTo(currentId, false);
+    if (profileOn) fitFrame();
+    drawDistMap(); sizeHist($(`.hist-frame[data-id="${currentId}"]`));
   }, 150);
 });
-fitFrame();
 
-$("#carPrev").addEventListener("click", () => step(-1));
-$("#carNext").addEventListener("click", () => step(1));
-$("#cards").addEventListener("scroll", onTrackScroll, { passive: true });
-$("#carChips").addEventListener("click", (e) => {
-  const c = e.target.closest(".chip");
-  if (c) goTo(Number(c.dataset.id));
+$("#stnBar").addEventListener("click", (e) => {
+  const b = e.target.closest(".stn-btn");
+  if (b) select(Number(b.dataset.id));
 });
-$$("#cardFilter button").forEach((b) => b.addEventListener("click", () => {
-  $$("#cardFilter button").forEach((x) => x.classList.toggle("on", x === b));
-  filter = b.dataset.f; applyFilter();
-}));
+$("#profileLoad").addEventListener("click", showProfile);
 document.addEventListener("click", (e) => {
   const b = e.target.closest(".img-btn");
   const lb = $("#lightbox");
@@ -560,6 +516,13 @@ document.addEventListener("keydown", (e) => {
 $("#distMap").addEventListener("click", onDistPick);
 $("#distMap").addEventListener("keydown", onDistPick);
 
-refresh();
+renderCards();
 drawDistMap();
-setInterval(refresh, 5 * 60e3);
+select(currentId);
+refresh();
+// รีเฟรชทุก 5 นาทีเฉพาะตอนเปิดดูหน้าอยู่ (แท็บที่ซ่อนไว้ไม่ยิง สนน.) กลับมาดูแล้วค่อยโหลดใหม่
+const REFRESH_MS = 5 * 60e3;
+setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_MS);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && Date.now() - lastRefresh > REFRESH_MS) refresh();
+});

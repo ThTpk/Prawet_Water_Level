@@ -27,7 +27,17 @@
 </header>
 
 <main>
-  <!-- ภาพหลัก: กราฟระดับน้ำคลองประเวศ จากหน้า MapLetLeaf ของ สนน. (ฝังด้วย iframe) -->
+  <!-- ปุ่มเลือกจุด เรียงตะวันตก → ตะวันออก: โหลดภาพ + กราฟจาก สนน. เฉพาะจุดที่กด (กันโดน Cloudflare บล็อก) -->
+  <section id="stations">
+    <div class="section-head">
+      <h2>ประตูระบายน้ำและจุดวัดระดับน้ำ</h2>
+      <span class="muted small">เรียงจากตะวันตก → ตะวันออก · กดชื่อจุดเพื่อโหลดภาพและกราฟของจุดนั้น</span>
+    </div>
+    <div class="stn-bar" id="stnBar" role="tablist" aria-label="เลือกจุด (ตะวันตก → ตะวันออก)"></div>
+    <div class="stn-view" id="cards"></div>
+  </section>
+
+  <!-- กราฟระดับน้ำทั้งคลอง จากหน้า MapLetLeaf ของ สนน. (ฝังด้วย iframe) — โหลดเมื่อกดปุ่มเท่านั้น -->
   <section class="panel hero">
     <div class="panel-head">
       <div>
@@ -35,6 +45,7 @@
         <p class="muted small">กราฟจากหน้า "ข้อมูลระดับน้ำ" ของ สนน. โดยตรง · ชี้ที่จุดบนกราฟเพื่อดูค่า</p>
       </div>
       <div class="head-right">
+        <button class="btn small" id="profileLoad">แสดงแผนภาพทั้งคลอง</button>
         <a class="small" href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">เปิดเว็บ สนน. ↗</a>
       </div>
     </div>
@@ -42,7 +53,7 @@
     <form id="frmProfile" method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf" target="bmaProfile" hidden>
       <input type="hidden" name="selriver" value="30_1">
     </form>
-    <div class="frame-wrap">
+    <div class="frame-wrap" hidden>
       <p class="frame-msg muted small">กำลังโหลดกราฟระดับน้ำจาก สนน.…</p>
       <!-- frame-clip = หน้าต่างตัดเฉพาะส่วนกราฟ -->
       <div class="frame-clip">
@@ -58,29 +69,9 @@
     <div class="dist-map" id="distMap"></div>
   </section>
 
-  <section>
-    <div class="section-head">
-      <h2>ภาพประตูระบายน้ำและระดับน้ำรายจุด</h2>
-      <div class="seg" id="cardFilter">
-        <button data-f="all" class="on">ทุกจุด</button>
-        <button data-f="gate">เฉพาะประตูระบายน้ำ / สถานีสูบน้ำ</button>
-      </div>
-    </div>
-    <!-- ภาพรายจุดแบบเลื่อนซ้าย-ขวา (ทีละสถานี) -->
-    <div class="carousel" id="carousel" aria-roledescription="carousel" aria-label="ภาพประตูระบายน้ำและระดับน้ำรายจุด">
-      <button class="car-nav prev" id="carPrev" aria-label="สถานีก่อนหน้า (ทางตะวันตก)">‹</button>
-      <div class="car-track" id="cards" tabindex="0"></div>
-      <button class="car-nav next" id="carNext" aria-label="สถานีถัดไป (ทางตะวันออก)">›</button>
-    </div>
-    <div class="car-bar">
-      <span class="car-pos muted small" id="carPos"></span>
-      <div class="car-chips" id="carChips" role="tablist" aria-label="เลือกสถานี (ตะวันตก → ตะวันออก)"></div>
-    </div>
-  </section>
-
   <footer class="foot muted small">
     ที่มา: <a href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">weather.bangkok.go.th/water</a>
-    · ข้อมูลทั้งหมดโหลดสดจากเว็บ สนน. ทุกครั้งที่เปิดหน้า · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
+    · โหลดสดจากเว็บ สนน. เฉพาะจุดที่เลือก · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
   </footer>
 </main>
 
