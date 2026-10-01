@@ -57,7 +57,7 @@ function renderCards() {
         <p class="graph-msg small">กำลังโหลดกราฟระดับน้ำจาก สนน.…</p>
       </div>
       <footer class="small">
-        <span class="muted">ระดับน้ำและเกณฑ์อยู่ในภาพ (ม.รทก.) · ลากบนกราฟเพื่อซูมช่วงเวลา</span>
+        <span class="muted">ระดับน้ำและเกณฑ์อยู่ในภาพ (ม.รทก.) · ชี้ที่กราฟเพื่อดูวันเวลา · ลากบนกราฟเพื่อซูมช่วงเวลา</span>
         <button class="btn small ghost graph-zoom" data-id="${s.id}">⤢ ขยายกราฟ</button>
         <a href="${BMA}/StationDetail?id=${s.id}${HIST_ANCHOR}" target="_blank" rel="noopener noreferrer">ดูกราฟระดับน้ำย้อนหลังที่หน้า สนน. ↗</a>
       </footer>
@@ -128,13 +128,17 @@ function loadImg(id, force = false) {
 }
 
 /* ---------- กราฟระดับน้ำย้อนหลัง (หน้า GraphOnIframe ของ สนน.) ----------
-   หน้ากราฟสูงคงที่ 150px (+ ขอบ body 8px) และกว้างเต็มกรอบ → จอกว้างวาดที่ความกว้าง GRAPH_BASE_W
-   แล้วขยายทั้งกรอบด้วย transform ให้กราฟสูงขึ้นตามสัดส่วน (มือถือไม่ขยาย)
+   หน้ากราฟของ สนน. ล็อกความสูงไว้ 150px (+ ขอบ body 8px) กว้างเต็มกรอบ และเราแก้ข้างในกรอบไม่ได้
+   → ย่อ/ขยายทั้งกรอบด้วย transform แยกแนวนอน (sx) กับแนวตั้ง (sy): ยืดแนวตั้งมากกว่าเพื่อให้แกน Y ห่างขึ้น
+     (ตัวหนังสือในกราฟสูงขึ้นตาม จึงจำกัด sy/sx ไม่เกิน GRAPH_STRETCH_MAX)
    กราฟที่โหลดแล้วเก็บไว้ (ไม่ยิงซ้ำ) จนถึงรอบรีเฟรช
    ปุ่ม "ขยายกราฟ": ทำให้กรอบเดิมเต็มจอ (CSS .zoomed) แล้วขยายใหม่ — ไม่ย้าย iframe จึงไม่โหลดซ้ำ ไม่ยิง สนน. เพิ่ม
    (กราฟของ สนน. ตั้ง zoomType: 'x' ไว้แล้ว ลากเมาส์/นิ้วบนกราฟเพื่อซูมช่วงเวลาได้ทั้งแบบปกติและแบบขยาย) */
 const GRAPH_PAGE_H = 166;
-const GRAPH_BASE_W = 560;
+const GRAPH_BASE_W = 560;        // ความกว้างที่ให้หน้า สนน. วาด (จอกว้างกว่านี้ขยายทั้งกรอบแทน)
+const GRAPH_H_MIN = 240;         // ความสูงกรอบกราฟปกติ (px บนจอ) ต่ำสุด / สูงสุด
+const GRAPH_H_MAX = 340;
+const GRAPH_STRETCH_MAX = 2;     // ยืดแนวตั้งได้ไม่เกิน 2 เท่าของแนวนอน
 function loadGraph(id, force = false) {
   const box = $(`.graph-frame[data-id="${id}"]`);
   const st = STATIONS.find((s) => s.id === id);
@@ -153,26 +157,30 @@ function loadGraph(id, force = false) {
   f.src = graphUrl(st, Date.now());
 }
 const GRAPH_ZOOM_BAR = 52;   // แถบชื่อจุด + ปุ่มปิด ตอนขยายเต็มจอ
+// วางหน้ากราฟของ สนน. ในพื้นที่กว้าง W สูงไม่เกิน H: sx ตามความกว้าง, sy ยืดให้เต็มความสูง (ไม่เกิน sx × GRAPH_STRETCH_MAX)
+function graphScale(W, H, maxSx) {
+  const sx = Math.min(Math.max(W / GRAPH_BASE_W, 1), maxSx);
+  const sy = Math.min(Math.max(H / GRAPH_PAGE_H, sx), sx * GRAPH_STRETCH_MAX);
+  return { sx, sy };
+}
 function fitGraph(box) {
   const f = box && $("iframe", box);
   if (!f || !box.clientWidth) return;
-  if (box.classList.contains("zoomed")) {
-    // เต็มจอ: ขยายให้กว้างเต็มจอ แต่ไม่สูงเกินพื้นที่ใต้แถบ แล้ววางกลางแนวตั้ง
-    const W = box.clientWidth - 24, H = box.clientHeight - GRAPH_ZOOM_BAR - 12;
-    const s = Math.max(Math.min(W / GRAPH_BASE_W, H / GRAPH_PAGE_H), 1);
-    f.style.width = `${W / s}px`;
-    f.style.height = `${GRAPH_PAGE_H}px`;
-    f.style.left = "12px";
-    f.style.top = `${GRAPH_ZOOM_BAR + Math.max(0, (H - GRAPH_PAGE_H * s) / 2)}px`;
-    f.style.transform = `scale(${s})`;
-    return;
-  }
-  const s = Math.min(Math.max(box.clientWidth / GRAPH_BASE_W, 1), 1.6);
-  f.style.width = `${box.clientWidth / s}px`;
+  const zoomed = box.classList.contains("zoomed");
+  const W = zoomed ? box.clientWidth - 24 : box.clientWidth;
+  const H = zoomed ? box.clientHeight - GRAPH_ZOOM_BAR - 12
+    : Math.min(Math.max(W * 0.38, GRAPH_H_MIN), GRAPH_H_MAX);
+  const { sx, sy } = graphScale(W, H, zoomed ? Infinity : 1.6);
+  f.style.width = `${W / sx}px`;
   f.style.height = `${GRAPH_PAGE_H}px`;
-  f.style.left = f.style.top = "0";
-  f.style.transform = `scale(${s})`;
-  box.style.height = `${Math.round(GRAPH_PAGE_H * s)}px`;
+  f.style.transform = `scale(${sx}, ${sy})`;
+  if (zoomed) {   // เต็มจอ: วางกลางแนวตั้ง
+    f.style.left = "12px";
+    f.style.top = `${GRAPH_ZOOM_BAR + Math.max(0, (H - GRAPH_PAGE_H * sy) / 2)}px`;
+  } else {
+    f.style.left = f.style.top = "0";
+    box.style.height = `${Math.round(GRAPH_PAGE_H * sy)}px`;
+  }
 }
 const zoomedGraph = () => $(".graph-frame.zoomed");
 function zoomGraph(box, on) {
