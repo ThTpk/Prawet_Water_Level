@@ -33,7 +33,10 @@
         <h2>แผนภาพระดับน้ำคลองประเวศบุรีรมย์</h2>
         <p class="muted small">แสดงหน้า "ข้อมูลระดับน้ำ" ของ สนน. โดยตรง · ชี้ที่จุดบนกราฟเพื่อดูค่า · เลื่อนในกรอบได้</p>
       </div>
-      <a class="small" href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">เปิดเว็บ สนน. ↗</a>
+      <div class="head-right">
+        <button id="btnSidebar" class="btn ghost small" aria-pressed="false">แสดงเมนู สนน.</button>
+        <a class="small" href="https://weather.bangkok.go.th/water/" target="_blank" rel="noopener">เปิดเว็บ สนน. ↗</a>
+      </div>
     </div>
     <!-- ฟอร์มซ่อน: หน้า MapLetLeaf ต้อง POST selriver=30_1 (คลองประเวศบุรีรมย์) และ #FrmIndex เลื่อนไปที่กราฟ (อยู่เหนือกราฟพอดี เผื่อแถบเมนูของ สนน. บัง) -->
     <form id="frmProfile" method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf#FrmIndex" target="bmaProfile" hidden>

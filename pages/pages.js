@@ -57,6 +57,36 @@ function refresh() {
   $("#lastUpdate").textContent = `โหลดเมื่อ ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")} น.`;
 }
 
+/* ซ่อนแถบเมนูซ้ายของเว็บ สนน. ในกรอบ
+   iframe ต่างโดเมน สั่งกดปุ่มย่อเมนูของ สนน. ไม่ได้ จึงขยาย iframe ให้กว้างขึ้นเท่าแถบเมนู
+   แล้วเลื่อนไปทางซ้ายให้แถบเมนูพ้นกรอบแทน
+   (ธีมของ สนน.: แถบเมนูกว้าง 260px และจะซ่อนเองเมื่อหน้าแคบกว่า 769px) */
+const BMA_SIDEBAR_PX = 260;
+const BMA_SMALL_BREAK_PX = 769;
+let showSidebar = false;
+
+function fitFrame(extra = 0) {
+  const wrap = $(".frame-wrap"), f = $("#bmaProfile");
+  const w = wrap.clientWidth;
+  const crop = !showSidebar && w + BMA_SIDEBAR_PX >= BMA_SMALL_BREAK_PX;
+  f.style.width = `${(crop ? w + BMA_SIDEBAR_PX : w) + extra}px`;
+  f.style.marginLeft = crop ? `-${BMA_SIDEBAR_PX}px` : "0";
+}
+// กราฟ Highcharts ของ สนน. วัดขนาดก่อนหน้าเว็บจัดวางเสร็จเมื่ออยู่ใน iframe จึงกว้างเกินกรอบ
+// ขยับความกว้าง iframe 1px หลังโหลด เพื่อให้เกิด resize ภายใน แล้วกราฟจะวาดใหม่ให้พอดี
+$("#bmaProfile").addEventListener("load", () => {
+  setTimeout(() => { fitFrame(1); setTimeout(() => fitFrame(0), 150); }, 600);
+});
+$("#btnSidebar").addEventListener("click", (e) => {
+  showSidebar = !showSidebar;
+  e.currentTarget.textContent = showSidebar ? "ซ่อนเมนู สนน." : "แสดงเมนู สนน.";
+  e.currentTarget.setAttribute("aria-pressed", String(showSidebar));
+  fitFrame();
+});
+let rz;
+window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(fitFrame, 100); });
+fitFrame();
+
 $("#btnRefresh").addEventListener("click", refresh);
 $$("#cardFilter button").forEach((b) => b.addEventListener("click", () => {
   $$("#cardFilter button").forEach((x) => x.classList.toggle("on", x === b));
