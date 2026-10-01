@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -20,10 +21,13 @@ OUT = Path(__file__).resolve().parent / "site"
 
 def main() -> int:
     data = build_data(force=True)
+    gha = bool(os.environ.get("GITHUB_ACTIONS"))
     for e in data["errors"]:
-        print("WARN:", e, file=sys.stderr)
+        # ::warning:: แสดงเป็น annotation ในหน้า Actions
+        print(f"::warning::{e}" if gha else f"WARN: {e}")
     if not data["stations"]:
-        print("ERROR: ไม่ได้ข้อมูลแผนภาพคลองประเวศ — ไม่สร้างเว็บ", file=sys.stderr)
+        msg = "ไม่ได้ข้อมูลแผนภาพคลองประเวศ — ไม่สร้างเว็บ: " + " | ".join(data["errors"])
+        print(f"::error::{msg}" if gha else f"ERROR: {msg}")
         return 1
 
     if OUT.exists():
