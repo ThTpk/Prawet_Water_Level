@@ -45,10 +45,15 @@
     </form>
     <div class="frame-wrap">
       <p class="frame-msg muted small">กำลังโหลดกราฟระดับน้ำจาก สนน.…</p>
-      <iframe name="bmaProfile" id="bmaProfile" title="แผนภาพระดับน้ำคลองประเวศ จากสำนักการระบายน้ำ"
-              loading="eager" scrolling="no" tabindex="-1"></iframe>
+      <!-- frame-clip = หน้าต่างตัดเฉพาะส่วนกราฟ (เต็มจอ: หมุน/จัดกลางทั้งหน้าต่างนี้) -->
+      <div class="frame-clip">
+        <iframe name="bmaProfile" id="bmaProfile" title="แผนภาพระดับน้ำคลองประเวศ จากสำนักการระบายน้ำ"
+                loading="eager" scrolling="no" tabindex="-1"></iframe>
+      </div>
+      <!-- จอแคบ: แตะกราฟเพื่อขยายเต็มจอ (ชั้นโปร่งใสรับการแตะ เพราะแตะใน iframe ต่างโดเมนหน้าเรารับไม่ได้) -->
+      <button class="frame-expand" id="btnExpand" aria-label="ขยายกราฟระดับน้ำเต็มจอ"><span>⤢ แตะเพื่อขยาย</span></button>
+      <button class="frame-close" id="btnCloseFull" aria-label="ปิดกราฟเต็มจอ">✕ ปิด</button>
     </div>
-    <p class="pan-hint muted small">↔ เลื่อนซ้าย-ขวาในกรอบเพื่อดูทั้งกราฟ (หรือถ่างนิ้วเพื่อขยาย)</p>
     <!-- กราฟของ สนน. วางจุดห่างเท่ากัน จึงแสดงระยะจริงแยกไว้ใต้กราฟ -->
     <div class="dist-head">
       <h3>ระยะห่างระหว่างจุดวัดตามแนวคลอง</h3>

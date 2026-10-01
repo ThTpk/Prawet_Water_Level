@@ -57,9 +57,8 @@ function renderCards(t) {
         <div class="ttl"><h3>${esc(s.name)}</h3><p class="muted small">${esc(s.kind)} · ${esc(s.district)}</p></div>
       </header>
       <button class="img-btn" data-id="${s.id}" data-cap="${esc(s.name)}" aria-label="ขยายภาพ ${esc(s.name)}">
-        <img src="${imgUrl(s.id, t)}" alt="ภาพรูปตัดและระดับน้ำ ${esc(s.name)}" loading="lazy"
-             onerror="imgRetry(this)" onload="this.dataset.tries = 0">
-        <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — กดโหลดใหม่ หรือเปิดหน้าสถานี</span>
+        <img alt="ภาพรูปตัดและระดับน้ำ ${esc(s.name)}">
+        <span class="img-msg">โหลดภาพจาก สนน. ไม่สำเร็จ — แตะเพื่อลองใหม่</span>
       </button>
       <div class="hist-frame" data-id="${s.id}">
         <p class="hist-msg muted small">กำลังโหลดกราฟระดับน้ำย้อนหลังจาก สนน.…</p>
@@ -112,10 +111,9 @@ function markCurrent() {
   $$(".st-card").forEach((c) => c.setAttribute("aria-hidden", String(c.id !== `st-${currentId}`)));
   $("#carPos").textContent = `${vis.indexOf(currentId) + 1} / ${vis.length}`;
   $$("#distMap .dm-stn").forEach((g) => g.classList.toggle("on", Number(g.dataset.id) === currentId));
-  // โหลดกราฟย้อนหลังเฉพาะสถานีที่แสดง (หน่วงเล็กน้อย เผื่อกำลังกดเลื่อนผ่านหลายสถานี)
-  // และรอให้กราฟหลักโหลดเสร็จก่อน ไม่ยิงเว็บ สนน. พร้อมกันหลายหน้า
+  // ภาพ + กราฟย้อนหลังของสถานีที่แสดง ขึ้นหน้าคิว (หน่วงเล็กน้อย เผื่อกำลังกดเลื่อนผ่านหลายสถานี)
   clearTimeout(markCurrent.t);
-  markCurrent.t = setTimeout(() => afterProfile(() => loadHist(currentId)), 400);
+  markCurrent.t = setTimeout(() => queueStation(currentId, true), 400);
 }
 // ปัดด้วยนิ้ว/ทัชแพด: อัปเดตสถานีปัจจุบันตามการ์ดที่อยู่กลางกรอบ
 let scrollT;
@@ -136,55 +134,111 @@ function onTrackScroll() {
   }, 80);
 }
 
-/* ---------- โหลดจากเว็บ สนน. แบบไม่ยิงพร้อมกัน + ลองใหม่เมื่อถูกปฏิเสธ ----------
-   เว็บ สนน. (IIS) ตอบ 403 ชั่วคราวเมื่อเบราว์เซอร์เดียวขอพร้อมกันมากเกินไป (หายเองในไม่กี่วินาที)
-   - กราฟหลักโหลดก่อน กราฟย้อนหลังรอจนกราฟหลักเสร็จ
-   - หน้า 403 เล็กมาก โหลดเสร็จเร็วผิดปกติ (หน้าจริงใช้หลายวินาที) → ถือว่าถูกปฏิเสธ แล้วลองใหม่
-   - ภาพที่โหลดไม่สำเร็จ ลองใหม่ 3 ครั้ง (5, 10, 20 วินาที) */
+/* ---------- คิวโหลดจากเว็บ สนน. ทีละรายการ ----------
+   เว็บ สนน. (IIS) ตอบ 403 ชั่วคราวเมื่อเบราว์เซอร์เดียวขอพร้อมกันมากเกินไป จึงโหลดทีละรายการ:
+   รายการหนึ่งเสร็จ (หรือเกิน TASK_TIMEOUT) แล้วเว้น GAP_MS ค่อยเริ่มรายการถัดไป
+   ลำดับ: กราฟหลัก → ภาพสถานีที่แสดง → กราฟย้อนหลังสถานีที่แสดง → ภาพสถานีอื่น (ใกล้ก่อน)
+   - หน้า 403 เล็กมาก โหลดเสร็จเร็วผิดปกติ (หน้าจริงใช้หลายวินาที) → ถือว่าถูกปฏิเสธ
+   - รายการที่ถูกปฏิเสธ นำกลับเข้าคิวอีกครั้งหลัง 4 / 8 / 15 / 30 / 60 วินาที (ไม่ขวางรายการอื่นระหว่างรอ)
+   - ภาพที่ยังไม่สำเร็จ แตะที่ภาพเพื่อลองใหม่ทันที */
 const FAST_FAIL_MS = 2000;
-const RETRY_DELAYS = [5000, 10000, 20000];
-const pageStart = Date.now();
-const profileState = { start: 0, tries: 0, done: false, waiters: [] };
+const RETRY_DELAYS = [4000, 8000, 15000, 30000, 60000];   // ลองใหม่ได้ราว 2 นาที
+const GAP_MS = 400;
+const TASK_TIMEOUT = 40000;
+const queue = [];
+let running = null;
 
-function imgRetry(img) {
-  const tries = Number(img.dataset.tries || 0);
-  if (tries >= RETRY_DELAYS.length) { img.closest(".img-btn").classList.add("img-fail"); return; }
-  img.dataset.tries = tries + 1;
-  setTimeout(() => { img.src = imgUrl(img.closest(".img-btn").dataset.id, Date.now()); }, RETRY_DELAYS[tries]);
+// key ซ้ำในคิว = ไม่เพิ่มซ้ำ; front = ขึ้นหน้าคิว (ถ้ามีอยู่แล้วก็ย้ายขึ้นหน้า)
+function enqueue(key, run, front = false) {
+  if (running && running.key === key) return;
+  const i = queue.findIndex((t) => t.key === key);
+  if (i >= 0) { if (!front) return; queue.splice(i, 1); }
+  const task = { key, run };
+  if (front) queue.unshift(task); else queue.push(task);
+  pump();
 }
-function loadProfile() {
+function pump() {
+  if (running || !queue.length) return;
+  const task = (running = queue.shift());
+  let finished = false;
+  const done = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(timer);
+    running = null;
+    setTimeout(pump, GAP_MS);
+  };
+  const timer = setTimeout(done, TASK_TIMEOUT);
+  try { task.run(done); } catch (err) { console.error(err); done(); }
+}
+function retryLater(key, run, tries) {
+  setTimeout(() => enqueue(key, run, true), RETRY_DELAYS[tries]);
+}
+
+// กราฟหลัก (MapLetLeaf)
+const profileState = { start: 0, tries: 0, done: null };
+function profileTask(done) {
   profileState.start = Date.now();
-  profileState.done = false;
+  profileState.done = done;
   guardScroll(15000);                     // หน้า สนน. ในกรอบอาจลากหน้าเราเลื่อนระหว่างโหลด
   $("#frmProfile").submit();               // โหลดกราฟ MapLetLeaf ใหม่ใน iframe
 }
-function profileDone() {
-  profileState.done = true;
-  profileState.tries = 0;
-  const w = profileState.waiters.splice(0);
-  setTimeout(() => w.forEach((fn) => fn()), 1500);  // เว้นจังหวะก่อนโหลดหน้าถัดไป
+
+// ภาพรูปตัด/ประตูระบายน้ำ
+function imgTask(img) {
+  return (done) => {
+    const btn = img.closest(".img-btn");
+    img.dataset.state = "loading";
+    img.onload = () => { img.dataset.state = "ok"; img.dataset.tries = 0; done(); };
+    img.onerror = () => {
+      const tries = Number(img.dataset.tries || 0);
+      if (tries < RETRY_DELAYS.length) {
+        img.dataset.tries = tries + 1;
+        img.dataset.state = "retry";
+        retryLater(`img${btn.dataset.id}`, imgTask(img), tries);
+      } else {
+        img.dataset.state = "fail";
+        btn.classList.add("img-fail");
+      }
+      done();
+    };
+    img.src = imgUrl(btn.dataset.id, Date.now());
+  };
 }
-// เรียก fn เมื่อกราฟหลักโหลดเสร็จ (หรือรอเกิน 25 วินาทีแล้วก็ไปต่อ)
-function afterProfile(fn) {
-  if (profileState.done || Date.now() - pageStart > 25000) return fn();
-  profileState.waiters.push(fn);
-  setTimeout(() => {
-    const i = profileState.waiters.indexOf(fn);
-    if (i >= 0) { profileState.waiters.splice(i, 1); fn(); }
-  }, 25000 - (Date.now() - pageStart));
+// ภาพ + กราฟย้อนหลังของสถานีหนึ่ง (front = สถานีที่กำลังแสดง ขึ้นหน้าคิว)
+function queueStation(id, front = false) {
+  const img = $(`#st-${id} .img-btn img`);
+  const box = $(`.hist-frame[data-id="${id}"]`);
+  const histPending = box && !box.dataset.loaded;
+  const imgPending = img && !img.dataset.state;
+  // เข้าหน้าคิวแบบกลับลำดับ เพื่อให้ได้ ภาพ → กราฟย้อนหลัง
+  if (histPending) enqueue(`hist${id}`, (done) => loadHist(id, done), front);
+  if (imgPending) enqueue(`img${id}`, imgTask(img), front);
+}
+function queueOtherImages() {
+  const order = STATIONS.map((s, i) => ({ id: s.id, i }));
+  const cur = order.findIndex((o) => o.id === currentId);
+  order.sort((a, b) => Math.abs(a.i - cur) - Math.abs(b.i - cur));
+  order.forEach(({ id }) => {
+    const img = $(`#st-${id} .img-btn img`);
+    if (img && !img.dataset.state) enqueue(`img${id}`, imgTask(img));
+  });
 }
 
 function refresh() {
   const t = Date.now();
-  loadProfile();
-  $$(".img-btn").forEach((b) => b.classList.remove("img-fail"));
   if (!$("#cards").children.length) renderCards(t);
-  else {
-    $$(".img-btn img").forEach((img) => { img.dataset.tries = 0; img.src = imgUrl(img.closest(".img-btn").dataset.id, t); });
-    // กราฟย้อนหลัง: ให้สถานีอื่นโหลดใหม่เมื่อเลื่อนไปถึง ส่วนสถานีที่แสดงอยู่โหลดใหม่หลังกราฟหลักเสร็จ
-    $$(".hist-frame").forEach((b) => delete b.dataset.loaded);
-    afterProfile(() => loadHist(currentId, true));
-  }
+  // เริ่มคิวใหม่ทั้งหมด (รายการที่กำลังโหลดอยู่ปล่อยให้เสร็จ)
+  queue.length = 0;
+  $$(".img-btn").forEach((b) => b.classList.remove("img-fail"));
+  $$(".img-btn img").forEach((img) => { delete img.dataset.state; img.dataset.tries = 0; });
+  $$(".hist-frame").forEach((b) => { delete b.dataset.loaded; b.dataset.tries = 0; });
+  profileState.tries = 0;
+  enqueue("profile", profileTask);
+  const cur = $(`#st-${currentId} .img-btn img`);
+  enqueue(`img${currentId}`, imgTask(cur));
+  enqueue(`hist${currentId}`, (done) => loadHist(currentId, done));
+  queueOtherImages();
   const d = new Date();
   const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
   $("#lastUpdate").textContent = `โหลดเมื่อ ${hm} น.`;
@@ -207,18 +261,38 @@ const PROFILE_CROP_X = 315;
 const PROFILE_CROP_Y = 1009;
 const PROFILE_VIEW_W = 1150;
 const PROFILE_VIEW_H = 712;
-// จอแคบ (มือถือ/ไอแพดแนวตั้ง) ไม่ย่อกราฟเล็กกว่านี้ ให้เลื่อนซ้าย-ขวาในกล่องแทน ตัวหนังสือจึงยังอ่านได้
-const PROFILE_MIN_W = 660;
-
 function fitFrame() {
-  const wrap = $(".frame-wrap"), f = $("#bmaProfile");
-  const w = Math.max(wrap.clientWidth, PROFILE_MIN_W);
-  wrap.classList.toggle("pan", w > wrap.clientWidth);
-  const s = w / PROFILE_VIEW_W;
-  wrap.style.height = `${Math.round(PROFILE_VIEW_H * s)}px`;
+  const wrap = $(".frame-wrap"), clip = $(".frame-clip"), f = $("#bmaProfile");
+  const full = wrap.classList.contains("full");
+  let s, clipTransform = "none";
+  if (!full) {
+    // ปกติ: ย่อพอดีความกว้างกล่อง (จอแคบตัวหนังสือเล็ก → แตะเพื่อขยายเต็มจอ)
+    s = wrap.clientWidth / PROFILE_VIEW_W;
+    wrap.style.height = `${Math.round(PROFILE_VIEW_H * s)}px`;
+  } else {
+    // เต็มจอ: ใหญ่ที่สุดที่พอดีจอ — จอแนวตั้งหมุนกราฟ 90° ใช้ด้านยาวของจอ
+    const W = window.innerWidth, H = window.innerHeight - 56;   // เว้นแถบปุ่มปิดด้านบน
+    const rotate = H > W * 1.15;
+    s = rotate ? Math.min(H / PROFILE_VIEW_W, W / PROFILE_VIEW_H) : Math.min(W / PROFILE_VIEW_W, H / PROFILE_VIEW_H);
+    s *= 0.98;
+    wrap.style.height = "";
+    clipTransform = `translate(${W / 2}px, ${56 + H / 2}px) ${rotate ? "rotate(90deg)" : ""} ` +
+      `translate(${(-PROFILE_VIEW_W * s) / 2}px, ${(-PROFILE_VIEW_H * s) / 2}px)`;
+  }
+  // หน้าต่างตัดขนาดเท่าส่วนกราฟ → ส่วนอื่นของหน้า สนน. ไม่โผล่
+  clip.style.width = `${PROFILE_VIEW_W * s}px`;
+  clip.style.height = `${PROFILE_VIEW_H * s}px`;
+  clip.style.transform = clipTransform;
   f.style.width = `${PROFILE_PAGE_W}px`;
   f.style.height = `${PROFILE_PAGE_H}px`;
   f.style.transform = `scale(${s}) translate(${-PROFILE_CROP_X}px, ${-PROFILE_CROP_Y}px)`;
+}
+function setFull(on) {
+  const wrap = $(".frame-wrap");
+  wrap.classList.toggle("full", on);
+  document.body.classList.toggle("no-scroll", on);
+  fitFrame();
+  if (on) $("#btnCloseFull").focus({ preventScroll: true });
 }
 
 /* ---------- แผนผังระยะห่างระหว่างจุดวัดตามแนวคลอง ---------- */
@@ -330,7 +404,7 @@ function sizeHist(box) {
   // ความกว้างการ์ดข้ามเกณฑ์มือถือ/จอใหญ่ → ต้องโหลดหน้า สนน. แบบใหม่
   if (box.dataset.mode && box.dataset.mode !== histMode(box)) {
     delete box.dataset.loaded;
-    if (Number(box.dataset.id) === currentId) loadHist(currentId);
+    if (Number(box.dataset.id) === currentId) queueStation(currentId, true);
     return;
   }
   const L = HIST_LAYOUTS[box.dataset.mode || histMode(box)];
@@ -371,6 +445,7 @@ function reclaimFocus() {
   const a = document.activeElement;
   const usingFrame = a === hoveredFrame && Date.now() - hoverSince > 1000 && Math.abs(window.scrollY - stableY) < 3;
   if (a?.tagName !== "IFRAME" || usingFrame || userActive()) return;
+  if (a.id === "bmaProfile" && $(".frame-wrap").classList.contains("full")) return;  // กำลังดูกราฟเต็มจอ
   stealAt = Date.now();
   $("#focusSink").focus({ preventScroll: true });
   if (Math.abs(window.scrollY - stableY) > 2) window.scrollTo(0, stableY);
@@ -382,9 +457,10 @@ function guardScroll(ms) {
   guardUntil = Date.now() + ms;
 }
 
-function loadHist(id, force = false) {
+// โหลดกราฟย้อนหลังของสถานี (เรียกจากคิวเท่านั้น; done = แจ้งคิวว่าเสร็จ)
+function loadHist(id, done = () => {}) {
   const box = $(`.hist-frame[data-id="${id}"]`);
-  if (!box || (box.dataset.loaded && !force)) return;
+  if (!box) return done();
   guardScroll(15000);
   box.dataset.loaded = "1";
   box.dataset.mode = histMode(box);
@@ -400,36 +476,40 @@ function loadHist(id, force = false) {
   sizeHist(box);
   const started = Date.now();
   f.onload = () => {
-    // เสร็จเร็วผิดปกติ = ได้หน้า 403 ของ สนน. → ลองใหม่ (สูงสุด 3 ครั้ง)
+    // เสร็จเร็วผิดปกติ = ได้หน้า 403 ของ สนน. → กลับเข้าคิวอีกครั้งภายหลัง (สูงสุด 3 ครั้ง)
     const tries = Number(box.dataset.tries || 0);
     if (Date.now() - started < FAST_FAIL_MS && tries < RETRY_DELAYS.length) {
       box.dataset.tries = tries + 1;
-      setTimeout(() => { if (box.contains(f)) loadHist(id, true); }, RETRY_DELAYS[tries]);
-      return;
+      retryLater(`hist${id}`, (d) => loadHist(id, d), tries);
+      return done();
     }
     box.dataset.tries = 0;
     // รอภาพในหน้า สนน. โหลดเสร็จ (ตำแหน่งกราฟจึงนิ่ง) แล้วขยับความกว้าง 1px ให้ Highcharts วาดใหม่
     // ซ่อนกรอบไว้จนเสร็จ ผู้ชมจึงไม่เห็นหน้า สนน. ขยับ
     setTimeout(() => { if (box.contains(f)) f.style.width = `${pageW + 1}px`; }, 1200);
     setTimeout(() => {
-      if (!box.contains(f)) return;
-      f.style.width = `${pageW}px`;
-      box.classList.add("ready");
+      if (box.contains(f)) { f.style.width = `${pageW}px`; box.classList.add("ready"); }
+      done();
     }, 1500);
   };
   f.src = stationUrl(id, Date.now());
 }
 // แสดงกรอบเมื่อหน้า สนน. โหลดเสร็จ (ก่อนหน้านั้นเห็นข้อความกำลังโหลด)
-$("#bmaProfile").addEventListener("load", () => {
-  if (!profileState.start) return;                 // load ของกรอบว่างตอนเปิดหน้า
+$("#bmaProfile").addEventListener("load", (e) => {
+  if (!profileState.start) return;
+  // load ของกรอบว่าง (about:blank) ตอนเปิดหน้า อาจมาถึงหลังเริ่มส่งฟอร์มแล้ว → ไม่นับ
+  // (กรอบว่างอ่านได้ ส่วนหน้า สนน. ต่างโดเมนอ่านไม่ได้ → เกิด error = เป็นหน้า สนน. จริง)
+  try { if (e.target.contentWindow.location.href === "about:blank") return; } catch { /* หน้า สนน. */ }
+  const done = profileState.done || (() => {});
+  profileState.done = null;
   if (Date.now() - profileState.start < FAST_FAIL_MS && profileState.tries < RETRY_DELAYS.length) {
-    // ได้หน้า 403 → ซ่อนกรอบ (แสดงข้อความกำลังโหลด) แล้วลองใหม่
+    // ได้หน้า 403 → ซ่อนกรอบ (แสดงข้อความกำลังโหลด) แล้วกลับเข้าคิวภายหลัง
     $(".frame-wrap").classList.remove("ready");
-    setTimeout(loadProfile, RETRY_DELAYS[profileState.tries++]);
-    return;
+    retryLater("profile", profileTask, profileState.tries++);
+    return done();
   }
-  setTimeout(() => $(".frame-wrap").classList.add("ready"), 800);
-  profileDone();
+  profileState.tries = 0;
+  setTimeout(() => { $(".frame-wrap").classList.add("ready"); done(); }, 800);
 });
 // จัดขนาดใหม่เฉพาะเมื่อ "ความกว้าง" เปลี่ยน — ใน Apps Script กรอบของ Google ปรับความสูงตามเนื้อหา
 // ซึ่งยิง resize ทุกครั้งที่ความสูงเปลี่ยน ถ้าวาดใหม่ทุกครั้งจะวนไม่จบ (หน้าค้าง)
@@ -446,6 +526,10 @@ fitFrame();
 
 $("#btnRefresh").addEventListener("click", refresh);
 $("#fabRefresh").addEventListener("click", refresh);
+$("#btnExpand").addEventListener("click", () => setFull(true));
+$("#btnCloseFull").addEventListener("click", () => setFull(false));
+// หมุนจอ/แถบที่อยู่ของมือถือยุบ-ขยาย ขณะเต็มจอ → จัดขนาดใหม่
+window.addEventListener("resize", () => { if ($(".frame-wrap").classList.contains("full")) fitFrame(); });
 $("#carPrev").addEventListener("click", () => step(-1));
 $("#carNext").addEventListener("click", () => step(1));
 $("#cards").addEventListener("scroll", onTrackScroll, { passive: true });
@@ -460,12 +544,19 @@ $$("#cardFilter button").forEach((b) => b.addEventListener("click", () => {
 document.addEventListener("click", (e) => {
   const b = e.target.closest(".img-btn");
   const lb = $("#lightbox");
-  if (b && !b.classList.contains("img-fail")) {
+  if (b && b.classList.contains("img-fail")) {      // แตะภาพที่โหลดไม่สำเร็จ = ลองใหม่ทันที
+    const img = $("img", b);
+    b.classList.remove("img-fail");
+    img.dataset.tries = 0;
+    enqueue(`img${b.dataset.id}`, imgTask(img), true);
+    return;
+  }
+  if (b && $("img", b).dataset.state === "ok") {
     $("img", lb).src = $("img", b).src; $("figcaption", lb).textContent = b.dataset.cap; lb.hidden = false;
   } else if (e.target.closest("#lightbox")) lb.hidden = true;
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { $("#lightbox").hidden = true; return; }
+  if (e.key === "Escape") { $("#lightbox").hidden = true; setFull(false); return; }
   // ลูกศรซ้าย/ขวา เปลี่ยนสถานี (เมื่อไม่ได้เปิดภาพขยายหรือพิมพ์อยู่)
   const busy = !$("#lightbox").hidden || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if (!busy && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
