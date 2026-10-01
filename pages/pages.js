@@ -134,23 +134,24 @@ function onTrackScroll() {
   }, 80);
 }
 
-/* ---------- คิวโหลดจากเว็บ สนน. ทีละรายการ ----------
-   เว็บ สนน. (IIS) ตอบ 403 ชั่วคราวเมื่อเบราว์เซอร์เดียวขอพร้อมกันมากเกินไป จึงโหลดทีละรายการ:
-   รายการหนึ่งเสร็จ (หรือเกิน TASK_TIMEOUT) แล้วเว้น GAP_MS ค่อยเริ่มรายการถัดไป
-   ลำดับ: กราฟหลัก → ภาพสถานีที่แสดง → กราฟย้อนหลังสถานีที่แสดง → ภาพสถานีอื่น (ใกล้ก่อน)
+/* ---------- คิวโหลดจากเว็บ สนน. (เริ่มทุกรายการพร้อมกัน) ----------
+   ทุกรายการเริ่มโหลดพร้อมกันทันที ลำดับที่ใส่คิวเป็นลำดับที่เริ่มส่งคำขอ:
+   กราฟหลัก → ภาพสถานีที่แสดง → กราฟย้อนหลังสถานีที่แสดง → ภาพสถานีอื่น (ใกล้ก่อน)
+   เว็บ สนน. (IIS) อาจตอบ 403 ชั่วคราวเมื่อขอพร้อมกันมาก จึงยังมีการลองใหม่:
    - หน้า 403 เล็กมาก โหลดเสร็จเร็วผิดปกติ (หน้าจริงใช้หลายวินาที) → ถือว่าถูกปฏิเสธ
-   - รายการที่ถูกปฏิเสธ นำกลับเข้าคิวอีกครั้งหลัง 4 / 8 / 15 / 30 / 60 วินาที (ไม่ขวางรายการอื่นระหว่างรอ)
-   - ภาพที่ยังไม่สำเร็จ แตะที่ภาพเพื่อลองใหม่ทันที */
+   - รายการที่ถูกปฏิเสธ นำกลับเข้าคิวอีกครั้งหลัง 4 / 8 / 15 / 30 / 60 วินาที
+   - ภาพที่ยังไม่สำเร็จ แตะที่ภาพเพื่อลองใหม่ทันที
+   (ถ้าอยากกลับไปโหลดทีละรายการ ตั้ง MAX_PARALLEL = 1) */
 const FAST_FAIL_MS = 2000;
-const RETRY_DELAYS = [4000, 8000, 15000, 30000, 60000];   // ลองใหม่ได้ราว 2 นาที
-const GAP_MS = 400;
+const RETRY_DELAYS = [4000, 8000, 15000, 30000, 60000];
+const MAX_PARALLEL = Infinity;
 const TASK_TIMEOUT = 40000;
 const queue = [];
-let running = null;
+const running = new Set();   // key ของรายการที่กำลังโหลด
 
-// key ซ้ำในคิว = ไม่เพิ่มซ้ำ; front = ขึ้นหน้าคิว (ถ้ามีอยู่แล้วก็ย้ายขึ้นหน้า)
+// key ซ้ำในคิว/กำลังโหลด = ไม่เพิ่มซ้ำ; front = ขึ้นหน้าคิว (ถ้ามีอยู่แล้วก็ย้ายขึ้นหน้า)
 function enqueue(key, run, front = false) {
-  if (running && running.key === key) return;
+  if (running.has(key)) return;
   const i = queue.findIndex((t) => t.key === key);
   if (i >= 0) { if (!front) return; queue.splice(i, 1); }
   const task = { key, run };
@@ -158,18 +159,20 @@ function enqueue(key, run, front = false) {
   pump();
 }
 function pump() {
-  if (running || !queue.length) return;
-  const task = (running = queue.shift());
-  let finished = false;
-  const done = () => {
-    if (finished) return;
-    finished = true;
-    clearTimeout(timer);
-    running = null;
-    setTimeout(pump, GAP_MS);
-  };
-  const timer = setTimeout(done, TASK_TIMEOUT);
-  try { task.run(done); } catch (err) { console.error(err); done(); }
+  while (queue.length && running.size < MAX_PARALLEL) {
+    const task = queue.shift();
+    running.add(task.key);
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      running.delete(task.key);
+      pump();
+    };
+    const timer = setTimeout(done, TASK_TIMEOUT);
+    try { task.run(done); } catch (err) { console.error(err); done(); }
+  }
 }
 function retryLater(key, run, tries) {
   setTimeout(() => enqueue(key, run, true), RETRY_DELAYS[Math.min(tries, RETRY_DELAYS.length - 1)]);
