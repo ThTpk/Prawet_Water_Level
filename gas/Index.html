@@ -540,7 +540,7 @@ function onTrackScroll() {
    (ถ้าอยากกลับไปโหลดทีละรายการ ตั้ง MAX_PARALLEL = 1) */
 const FAST_FAIL_MS = 2000;
 const RETRY_DELAYS = [4000, 8000, 15000, 30000, 60000];
-const MAX_PARALLEL = 3;   // โหลดพร้อมกันได้สูงสุด 3 รายการ (มากกว่านี้ สนน. มักตอบ 403)
+const MAX_PARALLEL = 6;   // โหลดพร้อมกันได้สูงสุด 6 รายการ (มากไป สนน. อาจตอบ 403 → มีลองใหม่)
 const TASK_TIMEOUT = 40000;
 const queue = [];
 const running = new Set();   // key ของรายการที่กำลังโหลด
