@@ -6,7 +6,8 @@
 
 ## Google Apps Script Web App (โฟลเดอร์ `gas/` — เว็บหลัก)
 
-เว็บ: https://script.google.com/macros/s/AKfycby89ZK2THTWzkvEFOgzwtC5PB62JIF1JFEczwgEIoYp7Ys-W-9UW8dGQ-S5QrSuCHnw/exec
+เว็บ: **https://tinyurl.com/prawet-water**
+(ลิงก์เต็ม: https://script.google.com/macros/s/AKfycby89ZK2THTWzkvEFOgzwtC5PB62JIF1JFEczwgEIoYp7Ys-W-9UW8dGQ-S5QrSuCHnw/exec)
 (บัญชี thanunchaithreepak@gmail.com · เปิดได้ทุกคนโดยไม่ต้องล็อกอิน)
 
 เว็บ สนน. ไม่ยอมให้เซิร์ฟเวอร์ต่างประเทศดึงข้อมูล (ตอบ 403) หน้าเว็บจึงให้
