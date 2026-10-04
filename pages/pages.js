@@ -315,18 +315,46 @@ function drawProfile24() {
    → ปุ่มเปิดหน้า KlongMap เต็มจอ ผู้ใช้เลือก "คลองประเวศบุรีรมย์" เองแล้วกราฟของ สนน. ขึ้นใน popup
    KlongMap ไม่มีบั๊ก Nav3 (ตรวจ 4 ต.ค. 2569) แต่หน้าใหญ่ (~3.3 MB) และดึงข้อมูลทุกสถานี (~2 MB) ทุก 5 นาที
    จึงโหลดเมื่อกดปุ่มเท่านั้น และปิดแล้วลบกรอบทิ้ง (หยุดการดึงซ้ำ) */
-const KLONGMAP_URL = "https://weather.bangkok.go.th/KlongMap";
-function openKlongMap() {
+// เรดาร์ฝน: หน้า RadarNongchok.aspx ของ สนน. (ภาพเรดาร์หนองจอก 965×800 ภาพเดียว ไม่มีรีเฟรชเอง ไม่มีบั๊ก Nav3
+// ตรวจ 4 ต.ค. 2569) — เปิดใหม่ทุกครั้งที่กดปุ่ม จึงได้ภาพล่าสุด
+const EXT_PAGES = {
+  klong: {
+    url: "https://weather.bangkok.go.th/KlongMap",
+    title: "ระดับน้ำตลอดคลองประเวศ — แผนผังบริหารจัดการน้ำ สนน.",
+    sub: "เลือก “คลองประเวศบุรีรมย์” ในช่อง “เลือกคลอง” มุมขวาบนของแผนผัง",
+    wait: "กำลังโหลดแผนผังจาก สนน.… (ประมาณ 10–20 วินาที)",
+    frameTitle: "แผนผังบริหารจัดการน้ำ กรุงเทพมหานคร จากสำนักการระบายน้ำ",
+    hint: true,
+  },
+  radar: {
+    url: "https://weather.bangkok.go.th/Radar/RadarNongchok.aspx",
+    title: "เรดาร์ฝน สถานีหนองจอก — สนน.",
+    sub: "ภาพเรดาร์ล่าสุดตอนเปิด · ปิดแล้วกดใหม่เพื่อดูภาพล่าสุด",
+    wait: "กำลังโหลดภาพเรดาร์จาก สนน.…",
+    frameTitle: "เรดาร์ฝน สถานีหนองจอก จากสำนักการระบายน้ำ",
+    hint: false,
+  },
+};
+
+function openExt(key) {
+  const page = EXT_PAGES[key];
+  if (!page) return;
   const ov = $("#klongOverlay"), wrap = $(".klong-frame", ov);
+  $("iframe", wrap)?.remove();
+  wrap.classList.remove("ready", "hint");
+  $("#extTitle").textContent = page.title;
+  $("#extSub").textContent = page.sub;
+  $("#extWait").textContent = page.wait;
   ov.hidden = false;
   document.body.classList.add("graph-open");
-  if ($("iframe", wrap)) return;
-  wrap.classList.remove("ready");
   const f = document.createElement("iframe");
-  f.title = "แผนผังบริหารจัดการน้ำ กรุงเทพมหานคร จากสำนักการระบายน้ำ";
+  f.title = page.frameTitle;
   f.referrerPolicy = "no-referrer";
-  f.onload = () => wrap.classList.add("ready");
-  f.src = KLONGMAP_URL;
+  f.onload = () => {
+    wrap.classList.add("ready");
+    wrap.classList.toggle("hint", page.hint);
+  };
+  f.src = page.url;
   wrap.appendChild(f);
   $("#klongClose").focus({ preventScroll: true });
 }
@@ -334,9 +362,15 @@ function closeKlongMap() {
   const ov = $("#klongOverlay");
   if (ov.hidden) return;
   $(".klong-frame iframe", ov)?.remove();
+  $(".klong-frame", ov).classList.remove("hint");
   ov.hidden = true;
   document.body.classList.remove("graph-open");
 }
+
+// ผู้ใช้คลิกเข้าไปในแผนผัง (โฟกัสย้ายเข้ากรอบ) → ซ่อนป้ายบอกทาง
+window.addEventListener("blur", () => {
+  if (document.activeElement?.closest?.(".klong-frame")) $(".klong-frame").classList.remove("hint");
+});
 
 let lastRefresh = 0;
 function refresh() {
@@ -459,7 +493,7 @@ window.addEventListener("resize", () => {
   rz = setTimeout(() => { drawDistMap(); drawProfile24(); fitGraph(zoomedGraph() || $(`.graph-frame[data-id="${currentId}"]`)); }, 150);
 });
 
-$("#klongBtn").addEventListener("click", openKlongMap);
+$$("[data-ext]").forEach((b) => b.addEventListener("click", () => openExt(b.dataset.ext)));
 $("#klongClose").addEventListener("click", closeKlongMap);
 $("#stnBar").addEventListener("click", (e) => {
   const b = e.target.closest(".stn-btn");

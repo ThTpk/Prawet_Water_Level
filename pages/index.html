@@ -47,7 +47,8 @@
         <p class="muted small">ระยะโดยประมาณ (เส้นตรงระหว่างพิกัดสถานี) · รวม ~28.3 กม. · คลิกจุดเพื่อดูภาพและกราฟ</p>
       </div>
       <div class="head-right">
-        <button class="btn small" id="klongBtn">ระดับน้ำตลอดคลองประเวศ</button>
+        <button class="btn small" data-ext="klong">ระดับน้ำตลอดคลองประเวศ</button>
+        <button class="btn small" data-ext="radar">เรดาร์ฝน</button>
       </div>
     </div>
     <div class="dist-map" id="distMap"></div>
@@ -69,16 +70,21 @@
   </footer>
 </main>
 
-<!-- ระดับน้ำตลอดคลอง: ฝังหน้า KlongMap ของ สนน. (โหลดเมื่อกดปุ่มเท่านั้น ปิดแล้วลบกรอบทิ้ง) -->
+<!-- หน้าเว็บ สนน. เต็มจอ (KlongMap / เรดาร์ฝน): โหลดเมื่อกดปุ่มเท่านั้น ปิดแล้วลบกรอบทิ้ง — ข้อความตั้งใน pages.js EXT_PAGES -->
 <div id="klongOverlay" class="klong-ov" hidden>
   <div class="klong-bar">
     <div>
-      <b>ระดับน้ำตลอดคลองประเวศ — แผนผังบริหารจัดการน้ำ สนน.</b>
-      <span class="small">เลือก “คลองประเวศบุรีรมย์” ในช่อง “เลือกคลอง” มุมขวาบนของแผนผัง</span>
+      <b id="extTitle"></b>
+      <span class="small" id="extSub"></span>
     </div>
-    <button class="btn small" id="klongClose" aria-label="ปิดแผนผัง">✕ ปิด</button>
+    <button class="btn small" id="klongClose" aria-label="ปิด">✕ ปิด</button>
   </div>
-  <div class="klong-frame"><p class="klong-msg">กำลังโหลดแผนผังจาก สนน.… (ประมาณ 10–20 วินาที)</p></div>
+  <div class="klong-frame">
+    <p class="klong-msg" id="extWait"></p>
+    <!-- ป้ายบอกทางไปช่อง "เลือกคลอง" (มุมขวาบนของแผนผัง) — ไม่ผูกตำแหน่ง เพราะผังของ KlongMap กว้างไม่คงที่ -->
+    <div class="klong-hint" aria-hidden="true">ช่อง “เลือกคลอง” อยู่มุมขวาบนของแผนผัง ↗<br>
+      <small>กดแล้วเลือก “คลองประเวศบุรีรมย์” · ถ้าไม่เห็นช่อง ให้เลื่อนแผนผังไปทางขวา</small></div>
+  </div>
 </div>
 
 <div id="lightbox" class="lightbox" hidden>

@@ -210,6 +210,12 @@ body.graph-open { overflow: hidden; }
 .klong-frame.ready iframe { opacity: 1; }
 .klong-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #4a5866; }
 .klong-frame.ready .klong-msg { display: none; }
+.klong-hint { display: none; position: absolute; z-index: 2; top: 150px; right: 16px; max-width: min(360px, calc(100% - 32px));
+  pointer-events: none; padding: 8px 12px; border-radius: 8px; background: #f0a33a; color: #17212b;
+  font-size: 14px; font-weight: 600; line-height: 1.4; box-shadow: 0 2px 10px rgba(0, 0, 0, .35); animation: klongPulse 1.6s ease-in-out infinite; }
+.klong-hint small { font-weight: 400; font-size: 12px; }
+.klong-frame.ready.hint .klong-hint { display: block; }
+@keyframes klongPulse { 50% { transform: translateY(-4px); } }
 .st-card footer { align-items: center; }
 
 

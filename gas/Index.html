@@ -220,6 +220,12 @@ body.graph-open { overflow: hidden; }
 .klong-frame.ready iframe { opacity: 1; }
 .klong-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #4a5866; }
 .klong-frame.ready .klong-msg { display: none; }
+.klong-hint { display: none; position: absolute; z-index: 2; top: 150px; right: 16px; max-width: min(360px, calc(100% - 32px));
+  pointer-events: none; padding: 8px 12px; border-radius: 8px; background: #f0a33a; color: #17212b;
+  font-size: 14px; font-weight: 600; line-height: 1.4; box-shadow: 0 2px 10px rgba(0, 0, 0, .35); animation: klongPulse 1.6s ease-in-out infinite; }
+.klong-hint small { font-weight: 400; font-size: 12px; }
+.klong-frame.ready.hint .klong-hint { display: block; }
+@keyframes klongPulse { 50% { transform: translateY(-4px); } }
 .st-card footer { align-items: center; }
 
 
@@ -362,7 +368,8 @@ body.graph-open { overflow: hidden; }
         <p class="muted small">ระยะโดยประมาณ (เส้นตรงระหว่างพิกัดสถานี) · รวม ~28.3 กม. · คลิกจุดเพื่อดูภาพและกราฟ</p>
       </div>
       <div class="head-right">
-        <button class="btn small" id="klongBtn">ระดับน้ำตลอดคลองประเวศ</button>
+        <button class="btn small" data-ext="klong">ระดับน้ำตลอดคลองประเวศ</button>
+        <button class="btn small" data-ext="radar">เรดาร์ฝน</button>
       </div>
     </div>
     <div class="dist-map" id="distMap"></div>
@@ -384,16 +391,21 @@ body.graph-open { overflow: hidden; }
   </footer>
 </main>
 
-<!-- ระดับน้ำตลอดคลอง: ฝังหน้า KlongMap ของ สนน. (โหลดเมื่อกดปุ่มเท่านั้น ปิดแล้วลบกรอบทิ้ง) -->
+<!-- หน้าเว็บ สนน. เต็มจอ (KlongMap / เรดาร์ฝน): โหลดเมื่อกดปุ่มเท่านั้น ปิดแล้วลบกรอบทิ้ง — ข้อความตั้งใน pages.js EXT_PAGES -->
 <div id="klongOverlay" class="klong-ov" hidden>
   <div class="klong-bar">
     <div>
-      <b>ระดับน้ำตลอดคลองประเวศ — แผนผังบริหารจัดการน้ำ สนน.</b>
-      <span class="small">เลือก “คลองประเวศบุรีรมย์” ในช่อง “เลือกคลอง” มุมขวาบนของแผนผัง</span>
+      <b id="extTitle"></b>
+      <span class="small" id="extSub"></span>
     </div>
-    <button class="btn small" id="klongClose" aria-label="ปิดแผนผัง">✕ ปิด</button>
+    <button class="btn small" id="klongClose" aria-label="ปิด">✕ ปิด</button>
   </div>
-  <div class="klong-frame"><p class="klong-msg">กำลังโหลดแผนผังจาก สนน.… (ประมาณ 10–20 วินาที)</p></div>
+  <div class="klong-frame">
+    <p class="klong-msg" id="extWait"></p>
+    <!-- ป้ายบอกทางไปช่อง "เลือกคลอง" (มุมขวาบนของแผนผัง) — ไม่ผูกตำแหน่ง เพราะผังของ KlongMap กว้างไม่คงที่ -->
+    <div class="klong-hint" aria-hidden="true">ช่อง “เลือกคลอง” อยู่มุมขวาบนของแผนผัง ↗<br>
+      <small>กดแล้วเลือก “คลองประเวศบุรีรมย์” · ถ้าไม่เห็นช่อง ให้เลื่อนแผนผังไปทางขวา</small></div>
+  </div>
 </div>
 
 <div id="lightbox" class="lightbox" hidden>
@@ -718,18 +730,46 @@ function drawProfile24() {
    → ปุ่มเปิดหน้า KlongMap เต็มจอ ผู้ใช้เลือก "คลองประเวศบุรีรมย์" เองแล้วกราฟของ สนน. ขึ้นใน popup
    KlongMap ไม่มีบั๊ก Nav3 (ตรวจ 4 ต.ค. 2569) แต่หน้าใหญ่ (~3.3 MB) และดึงข้อมูลทุกสถานี (~2 MB) ทุก 5 นาที
    จึงโหลดเมื่อกดปุ่มเท่านั้น และปิดแล้วลบกรอบทิ้ง (หยุดการดึงซ้ำ) */
-const KLONGMAP_URL = "https:\/\/weather.bangkok.go.th/KlongMap";
-function openKlongMap() {
+// เรดาร์ฝน: หน้า RadarNongchok.aspx ของ สนน. (ภาพเรดาร์หนองจอก 965×800 ภาพเดียว ไม่มีรีเฟรชเอง ไม่มีบั๊ก Nav3
+// ตรวจ 4 ต.ค. 2569) — เปิดใหม่ทุกครั้งที่กดปุ่ม จึงได้ภาพล่าสุด
+const EXT_PAGES = {
+  klong: {
+    url: "https:\/\/weather.bangkok.go.th/KlongMap",
+    title: "ระดับน้ำตลอดคลองประเวศ — แผนผังบริหารจัดการน้ำ สนน.",
+    sub: "เลือก “คลองประเวศบุรีรมย์” ในช่อง “เลือกคลอง” มุมขวาบนของแผนผัง",
+    wait: "กำลังโหลดแผนผังจาก สนน.… (ประมาณ 10–20 วินาที)",
+    frameTitle: "แผนผังบริหารจัดการน้ำ กรุงเทพมหานคร จากสำนักการระบายน้ำ",
+    hint: true,
+  },
+  radar: {
+    url: "https:\/\/weather.bangkok.go.th/Radar/RadarNongchok.aspx",
+    title: "เรดาร์ฝน สถานีหนองจอก — สนน.",
+    sub: "ภาพเรดาร์ล่าสุดตอนเปิด · ปิดแล้วกดใหม่เพื่อดูภาพล่าสุด",
+    wait: "กำลังโหลดภาพเรดาร์จาก สนน.…",
+    frameTitle: "เรดาร์ฝน สถานีหนองจอก จากสำนักการระบายน้ำ",
+    hint: false,
+  },
+};
+
+function openExt(key) {
+  const page = EXT_PAGES[key];
+  if (!page) return;
   const ov = $("#klongOverlay"), wrap = $(".klong-frame", ov);
+  $("iframe", wrap)?.remove();
+  wrap.classList.remove("ready", "hint");
+  $("#extTitle").textContent = page.title;
+  $("#extSub").textContent = page.sub;
+  $("#extWait").textContent = page.wait;
   ov.hidden = false;
   document.body.classList.add("graph-open");
-  if ($("iframe", wrap)) return;
-  wrap.classList.remove("ready");
   const f = document.createElement("iframe");
-  f.title = "แผนผังบริหารจัดการน้ำ กรุงเทพมหานคร จากสำนักการระบายน้ำ";
+  f.title = page.frameTitle;
   f.referrerPolicy = "no-referrer";
-  f.onload = () => wrap.classList.add("ready");
-  f.src = KLONGMAP_URL;
+  f.onload = () => {
+    wrap.classList.add("ready");
+    wrap.classList.toggle("hint", page.hint);
+  };
+  f.src = page.url;
   wrap.appendChild(f);
   $("#klongClose").focus({ preventScroll: true });
 }
@@ -737,9 +777,15 @@ function closeKlongMap() {
   const ov = $("#klongOverlay");
   if (ov.hidden) return;
   $(".klong-frame iframe", ov)?.remove();
+  $(".klong-frame", ov).classList.remove("hint");
   ov.hidden = true;
   document.body.classList.remove("graph-open");
 }
+
+// ผู้ใช้คลิกเข้าไปในแผนผัง (โฟกัสย้ายเข้ากรอบ) → ซ่อนป้ายบอกทาง
+window.addEventListener("blur", () => {
+  if (document.activeElement?.closest?.(".klong-frame")) $(".klong-frame").classList.remove("hint");
+});
 
 let lastRefresh = 0;
 function refresh() {
@@ -862,7 +908,7 @@ window.addEventListener("resize", () => {
   rz = setTimeout(() => { drawDistMap(); drawProfile24(); fitGraph(zoomedGraph() || $(`.graph-frame[data-id="${currentId}"]`)); }, 150);
 });
 
-$("#klongBtn").addEventListener("click", openKlongMap);
+$$("[data-ext]").forEach((b) => b.addEventListener("click", () => openExt(b.dataset.ext)));
 $("#klongClose").addEventListener("click", closeKlongMap);
 $("#stnBar").addEventListener("click", (e) => {
   const b = e.target.closest(".stn-btn");
