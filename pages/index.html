@@ -27,8 +27,19 @@
 </header>
 
 <main>
-  <!-- กราฟระดับน้ำทั้งคลอง: ไม่ฝังหน้า สนน. (หน้าของ สนน. ยิงคำขอวนไม่หยุด → โดน Cloudflare บล็อก)
-       ให้เปิดที่เว็บ สนน. ในแท็บใหม่แทน -->
+  <!-- ระดับน้ำตามแนวคลอง ราย 4 ชม. ย้อนหลัง 24 ชม.: วาดเองจากข้อมูลที่ collector.py เก็บไว้ใน Apps Script
+       (ไม่ฝังหน้า MapLetLeaf ของ สนน. — หน้านั้นยิง th.json วนไม่หยุดจนโดน Cloudflare บล็อก) -->
+  <section class="panel" id="p24Panel" hidden>
+    <div class="panel-head">
+      <div>
+        <h2>ระดับน้ำตามแนวคลองประเวศบุรีรมย์ ย้อนหลัง 24 ชม. (ราย 4 ชม.)</h2>
+        <p class="muted small" id="p24Note">กำลังโหลดข้อมูล…</p>
+      </div>
+    </div>
+    <div class="p24" id="p24"></div>
+    <div class="p24-legend" id="p24Legend"></div>
+  </section>
+
   <section class="panel hero">
     <div class="panel-head">
       <div>
@@ -36,11 +47,7 @@
         <p class="muted small">ระยะโดยประมาณ (เส้นตรงระหว่างพิกัดสถานี) · รวม ~28.3 กม. · คลิกจุดเพื่อดูภาพและกราฟ</p>
       </div>
       <div class="head-right">
-        <!-- หน้า MapLetLeaf ต้อง POST selriver=30_1 (คลองประเวศบุรีรมย์) -->
-        <form method="post" action="https://weather.bangkok.go.th/water/MapLetLeaf#waterlevelinformation" target="_blank" rel="noopener noreferrer">
-          <input type="hidden" name="selriver" value="30_1">
-          <button class="btn small" type="submit">ดูกราฟระดับน้ำทั้งคลองที่เว็บ สนน. ↗</button>
-        </form>
+        <button class="btn small" id="klongBtn">ระดับน้ำตลอดคลองประเวศ</button>
       </div>
     </div>
     <div class="dist-map" id="distMap"></div>
@@ -61,6 +68,18 @@
     · ภาพและกราฟโหลดสดจากเว็บ สนน. เฉพาะจุดที่เลือก · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
   </footer>
 </main>
+
+<!-- ระดับน้ำตลอดคลอง: ฝังหน้า KlongMap ของ สนน. (โหลดเมื่อกดปุ่มเท่านั้น ปิดแล้วลบกรอบทิ้ง) -->
+<div id="klongOverlay" class="klong-ov" hidden>
+  <div class="klong-bar">
+    <div>
+      <b>ระดับน้ำตลอดคลองประเวศ — แผนผังบริหารจัดการน้ำ สนน.</b>
+      <span class="small">เลือก “คลองประเวศบุรีรมย์” ในช่อง “เลือกคลอง” มุมขวาบนของแผนผัง</span>
+    </div>
+    <button class="btn small" id="klongClose" aria-label="ปิดแผนผัง">✕ ปิด</button>
+  </div>
+  <div class="klong-frame"><p class="klong-msg">กำลังโหลดแผนผังจาก สนน.… (ประมาณ 10–20 วินาที)</p></div>
+</div>
 
 <div id="lightbox" class="lightbox" hidden>
   <figure><img alt="" referrerpolicy="no-referrer"><figcaption></figcaption></figure>

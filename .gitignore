@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .claude/
+collector_secret.txt
+collector.log
+th.json.sample

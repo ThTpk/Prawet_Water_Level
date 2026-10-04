@@ -191,6 +191,153 @@ function zoomGraph(box, on) {
   if (on) $(".graph-close", box).focus({ preventScroll: true });
 }
 
+/* ---------- ระดับน้ำตามแนวคลอง ราย 4 ชม. ย้อนหลัง 24 ชม. ----------
+   ข้อมูล: collector.py (เครื่องในไทย ทุกชั่วโมง) อ่านตารางระดับน้ำย้อนหลังในหน้าสถานีของ สนน.
+   แล้วส่งมาเก็บใน Apps Script → หน้านี้อ่านผ่าน google.script.run.getProfile24() (ไม่ยิง สนน.)
+   { updated, latest, marks: [6 เวลา เก่า→ใหม่], values: { id: { in: [6], out?: [6] } } }
+   ประตูน้ำ/สถานีสูบมี 2 ค่า (ด้านใน/ด้านนอก) วาดเป็นขั้นที่ตำแหน่งสถานี ด้านในอยู่ฝั่งตาม GATE_INNER_SIDE */
+const GATE_INNER_SIDE = { 43: "east", 40: "west", 39: "west" };   // ตรงกับ config.py
+// สีเส้น เก่า (ฟ้าอ่อน) → ใหม่ (น้ำเงินเข้ม) ใช้ตัวแปร CSS --p24-0..5 (โหมดมืดเลื่อนสว่างขึ้นหนึ่งระดับ ใน style.css)
+const P24_COLORS = [0, 1, 2, 3, 4, 5].map((k) => `var(--p24-${k})`);
+const P24_STALE_H = 3;   // ข้อมูลเก่ากว่านี้ (ชม.) แจ้งว่าเครื่องดึงข้อมูลอาจหยุดทำงาน
+let p24 = null;
+const TH_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+const parseLocal = (s) => {
+  const [d, t] = s.split("T"), [y, m, dd] = d.split("-"), [h, mi] = t.split(":");
+  return new Date(+y, m - 1, +dd, +h, +mi);
+};
+const hhmm = (dt) => `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+const dateTh = (dt) => `${dt.getDate()} ${TH_MONTHS[dt.getMonth()]}`;
+const p24Color = (k, n) => P24_COLORS[k + P24_COLORS.length - n] || P24_COLORS[k];
+
+function loadProfile24() {
+  const done = (json) => {
+    try { p24 = json ? (typeof json === "string" ? JSON.parse(json) : json) : null; } catch { p24 = null; }
+    drawProfile24();
+  };
+  if (window.google?.script?.run) {
+    google.script.run.withSuccessHandler(done).withFailureHandler(() => done(null)).getProfile24();
+  } else {   // เปิดในเครื่อง (ไม่ใช่ Apps Script): ใช้ไฟล์ตัวอย่างข้างหน้า ถ้ามี
+    fetch("profile24.sample.json").then((r) => (r.ok ? r.json() : null)).then(done, () => done(null));
+  }
+}
+
+function drawProfile24() {
+  const box = $("#p24"), note = $("#p24Note"), legend = $("#p24Legend");
+  // ยังไม่มีแหล่งข้อมูล (ต้องมีเครื่องในไทยรัน collector.py) → ซ่อนทั้งกล่อง
+  $("#p24Panel").hidden = !(p24 && p24.marks);
+  if (!p24 || !p24.marks) {
+    box.replaceChildren(); legend.replaceChildren();
+    return;
+  }
+  const marks = p24.marks.map(parseLocal), n = marks.length;
+  const upd = parseLocal(p24.updated);
+  const ageH = (Date.now() - upd) / 36e5;
+  note.innerHTML = `ระดับน้ำ (ม.รทก.) ทุก 4 ชม. ถึง ${dateTh(marks[n - 1])} ${hhmm(marks[n - 1])} น.` +
+    ` · ดึงจาก สนน. เมื่อ ${dateTh(upd)} ${hhmm(upd)} น.` +
+    (ageH > P24_STALE_H ? ` · <span class="stale">ข้อมูลไม่อัปเดตมา ${Math.floor(ageH)} ชม. (เครื่องดึงข้อมูลอาจปิดอยู่)</span>` : "") +
+    " · ชี้/แตะจุดเพื่อดูค่า";
+
+  // แกน X: สถานีละ 1 ช่องเท่ากัน; ประตูน้ำแยกเป็น 2 จุดชิดกัน (ด้านใน/ด้านนอก ตามฝั่ง)
+  const W = box.clientWidth, narrow = W < 700;
+  if (!W) return;
+  const H = narrow ? 280 : 340, L = 46, R = 14, T = 14, B = narrow ? 30 : 60;
+  const slot = (W - L - R) / STATIONS.length;
+  const pts = [];
+  STATIONS.forEach((s, i) => {
+    const cx = L + slot * (i + 0.5), v = p24.values[s.id] || {};
+    if (v.out) {
+      const d = Math.min(14, slot * 0.18), innerWest = GATE_INNER_SIDE[s.id] !== "east";
+      pts.push({ x: cx - d, id: s.id, side: innerWest ? "in" : "out" });
+      pts.push({ x: cx + d, id: s.id, side: innerWest ? "out" : "in" });
+    } else pts.push({ x: cx, id: s.id, side: "in" });
+  });
+  const val = (p, k) => p24.values[p.id]?.[p.side]?.[k] ?? null;
+  const all = pts.flatMap((p) => marks.map((_, k) => val(p, k))).filter((v) => v != null);
+  if (!all.length) { note.textContent = "ข้อมูลว่าง"; box.replaceChildren(); legend.replaceChildren(); return; }
+  let lo = Math.min(...all), hi = Math.max(...all);
+  const pad = Math.max((hi - lo) * 0.12, 0.05);
+  lo -= pad; hi += pad;
+  const step = [0.05, 0.1, 0.2, 0.25, 0.5, 1].find((s) => (hi - lo) / s <= 7) || 1;
+  lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+  const Y = (v) => T + (hi - v) / (hi - lo) * (H - T - B);
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img",
+    "aria-label": "กราฟระดับน้ำตามแนวคลองประเวศ ราย 4 ชั่วโมง ย้อนหลัง 24 ชั่วโมง" });
+  for (let v = lo; v <= hi + 1e-9; v += step) {
+    svgEl("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v), class: "p24-grid" }, svg);
+    svgEl("text", { x: L - 6, y: Y(v) + 4, class: "p24-ytick", "text-anchor": "end" }, svg, v.toFixed(step < 0.1 ? 2 : 1));
+  }
+  const midY = T + (H - T - B) / 2;
+  svgEl("text", { x: 12, y: midY, class: "p24-ytick", "text-anchor": "middle", transform: `rotate(-90 12 ${midY})` }, svg, "ม.รทก.");
+  // แถบประตูน้ำ + เลข/ชื่อสถานี
+  STATIONS.forEach((s, i) => {
+    const cx = L + slot * (i + 0.5);
+    if (p24.values[s.id]?.out) svgEl("rect", { x: cx - 3, y: T, width: 6, height: H - T - B, class: "p24-gate" }, svg);
+    svgEl("text", { x: cx, y: H - B + 16, "text-anchor": "middle", class: "p24-num" }, svg, `${i + 1}`);
+    if (!narrow) {
+      const name = s.name.replace(/^ปตร\.คลองประเวศฯ-/, "ปตร.").replace(/^ค\.ประเวศฯ?-?\s?/, "");
+      svgEl("text", { x: cx, y: H - B + 32 + (i % 2) * 14, "text-anchor": "middle", class: "p24-name" }, svg, name);
+    }
+  });
+  // 6 เส้น: เก่า (อ่อน) → ใหม่ (เข้ม) วาดเส้นใหม่ทับเส้นเก่า; ค่าที่หายไปตัดเส้นเป็นช่วง
+  marks.forEach((m, k) => {
+    const color = p24Color(k, n), last = k === n - 1;
+    const g = svgEl("g", {}, svg);
+    let seg = [];
+    const flush = () => {
+      if (seg.length > 1) svgEl("polyline", { points: seg.join(" "), fill: "none", style: `stroke:${color}`, "stroke-width": last ? 3 : 2 }, g);
+      seg = [];
+    };
+    pts.forEach((p) => {
+      const v = val(p, k);
+      if (v == null) flush(); else seg.push(`${p.x.toFixed(1)},${Y(v).toFixed(1)}`);
+    });
+    flush();
+    pts.forEach((p) => {
+      const v = val(p, k);
+      if (v == null) return;
+      const st = STATIONS.find((s) => s.id === p.id);
+      const side = p24.values[p.id]?.out ? (p.side === "in" ? " (ด้านใน)" : " (ด้านนอก)") : "";
+      const c = svgEl("circle", { cx: p.x, cy: Y(v), r: last ? 4 : 3, style: `fill:${color}` }, g);
+      svgEl("title", {}, c, `${dateTh(m)} ${hhmm(m)} น. · ${st.name}${side} : ${v.toFixed(2)} ม.รทก.`);
+    });
+  });
+  box.replaceChildren(svg);
+  legend.innerHTML = marks.map((m, k) => {
+    const day = k === 0 || m.getDate() !== marks[k - 1].getDate() ? `${dateTh(m)} ` : "";
+    return `<span><i style="background:${p24Color(k, n)}"></i>${day}${hhmm(m)} น.</span>`;
+  }).join("") + (narrow ? `<span class="muted">เลข 1–8 = ลำดับจุดตามปุ่มด้านล่าง</span>` : "");
+}
+
+/* ---------- ระดับน้ำตลอดคลองประเวศ (หน้า KlongMap ของ สนน.) ----------
+   หน้าเราอ่านข้อมูล KlongMap (/Klongmap/GetDataForUpdate) เองไม่ได้ (ไม่มี CORS) และสั่งเลือกคลองในกรอบแทนผู้ใช้ไม่ได้
+   → ปุ่มเปิดหน้า KlongMap เต็มจอ ผู้ใช้เลือก "คลองประเวศบุรีรมย์" เองแล้วกราฟของ สนน. ขึ้นใน popup
+   KlongMap ไม่มีบั๊ก Nav3 (ตรวจ 4 ต.ค. 2569) แต่หน้าใหญ่ (~3.3 MB) และดึงข้อมูลทุกสถานี (~2 MB) ทุก 5 นาที
+   จึงโหลดเมื่อกดปุ่มเท่านั้น และปิดแล้วลบกรอบทิ้ง (หยุดการดึงซ้ำ) */
+const KLONGMAP_URL = "https://weather.bangkok.go.th/KlongMap";
+function openKlongMap() {
+  const ov = $("#klongOverlay"), wrap = $(".klong-frame", ov);
+  ov.hidden = false;
+  document.body.classList.add("graph-open");
+  if ($("iframe", wrap)) return;
+  wrap.classList.remove("ready");
+  const f = document.createElement("iframe");
+  f.title = "แผนผังบริหารจัดการน้ำ กรุงเทพมหานคร จากสำนักการระบายน้ำ";
+  f.referrerPolicy = "no-referrer";
+  f.onload = () => wrap.classList.add("ready");
+  f.src = KLONGMAP_URL;
+  wrap.appendChild(f);
+  $("#klongClose").focus({ preventScroll: true });
+}
+function closeKlongMap() {
+  const ov = $("#klongOverlay");
+  if (ov.hidden) return;
+  $(".klong-frame iframe", ov)?.remove();
+  ov.hidden = true;
+  document.body.classList.remove("graph-open");
+}
+
 let lastRefresh = 0;
 function refresh() {
   lastRefresh = Date.now();
@@ -199,6 +346,7 @@ function refresh() {
   loadImg(currentId);
   $$(".graph-frame").forEach((b) => delete b.dataset.loaded);   // จุดอื่นโหลดกราฟใหม่เมื่อถูกเลือก
   loadGraph(currentId);
+  loadProfile24();
   const d = new Date();
   const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
   $("#lastUpdate").textContent = `โหลดเมื่อ ${hm} น.`;
@@ -308,9 +456,11 @@ window.addEventListener("resize", () => {
   if (window.innerWidth === lastW) return;
   lastW = window.innerWidth;
   clearTimeout(rz);
-  rz = setTimeout(() => { drawDistMap(); fitGraph(zoomedGraph() || $(`.graph-frame[data-id="${currentId}"]`)); }, 150);
+  rz = setTimeout(() => { drawDistMap(); drawProfile24(); fitGraph(zoomedGraph() || $(`.graph-frame[data-id="${currentId}"]`)); }, 150);
 });
 
+$("#klongBtn").addEventListener("click", openKlongMap);
+$("#klongClose").addEventListener("click", closeKlongMap);
 $("#stnBar").addEventListener("click", (e) => {
   const b = e.target.closest(".stn-btn");
   if (b) select(Number(b.dataset.id));
@@ -333,7 +483,8 @@ document.addEventListener("click", (e) => {
   } else if (e.target.closest("#lightbox")) lb.hidden = true;
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { $("#lightbox").hidden = true; zoomGraph(zoomedGraph(), false); return; }
+  if (e.key === "Escape") { $("#lightbox").hidden = true; zoomGraph(zoomedGraph(), false); closeKlongMap(); return; }
+  if (!$("#klongOverlay").hidden) return;
   if (zoomedGraph()) return;   // เปิดกราฟเต็มจออยู่ ไม่เปลี่ยนสถานีด้วยลูกศร
   // ลูกศรซ้าย/ขวา เปลี่ยนสถานี (เมื่อไม่ได้เปิดภาพขยายหรือพิมพ์อยู่)
   const busy = !$("#lightbox").hidden || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
