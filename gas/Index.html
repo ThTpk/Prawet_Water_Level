@@ -70,6 +70,7 @@ h3 { font-size: 15px; font-weight: 600; }
   padding: 6px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap;
 }
 .btn:hover { filter: brightness(1.08); }
+a.btn { display: inline-block; text-decoration: none; }
 .btn:disabled { opacity: .6; cursor: progress; }
 
 main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
@@ -80,7 +81,7 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .panel { background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--line); padding: 16px 18px; min-width: 0; }
 .panel-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
 .panel-head p { margin: 2px 0 0; }
-.head-right { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.head-right { display: flex; gap: 8px 10px; align-items: center; flex-wrap: wrap; }
 .summary { display: flex; gap: 12px; font-size: 13px; color: var(--ink-2); flex-wrap: wrap; }
 .sum { display: inline-flex; align-items: center; gap: 5px; }
 .sum b { font-size: 15px; color: var(--ink); }
@@ -209,23 +210,6 @@ main { max-width: 1440px; margin: 0 auto; padding: 18px 24px 40px; display: grid
 .graph-frame.zoomed .graph-bar b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .graph-frame.zoomed .graph-msg { color: #fff; }
 body.graph-open { overflow: hidden; }
-/* ระดับน้ำตลอดคลอง: หน้า KlongMap ของ สนน. เต็มจอ */
-.klong-ov { position: fixed; inset: 0; z-index: 500; display: flex; flex-direction: column; background: rgba(0, 0, 0, .85); }
-.klong-ov[hidden] { display: none; }
-.klong-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; color: #fff; }
-.klong-bar b { display: block; font-size: 15px; }
-.klong-bar span { color: #d6e4f0; }
-.klong-frame { position: relative; flex: 1; margin: 0 12px 12px; background: #fff; border-radius: 8px; overflow: hidden; }
-.klong-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; transition: opacity .3s; }
-.klong-frame.ready iframe { opacity: 1; }
-.klong-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #4a5866; }
-.klong-frame.ready .klong-msg { display: none; }
-.klong-hint { display: none; position: absolute; z-index: 2; top: 150px; right: 16px; max-width: min(360px, calc(100% - 32px));
-  pointer-events: none; padding: 8px 12px; border-radius: 8px; background: #f0a33a; color: #17212b;
-  font-size: 14px; font-weight: 600; line-height: 1.4; box-shadow: 0 2px 10px rgba(0, 0, 0, .35); animation: klongPulse 1.6s ease-in-out infinite; }
-.klong-hint small { font-weight: 400; font-size: 12px; }
-.klong-frame.ready.hint .klong-hint { display: block; }
-@keyframes klongPulse { 50% { transform: translateY(-4px); } }
 .st-card footer { align-items: center; }
 
 
@@ -368,8 +352,12 @@ body.graph-open { overflow: hidden; }
         <p class="muted small">ระยะโดยประมาณ (เส้นตรงระหว่างพิกัดสถานี) · รวม ~28.3 กม. · คลิกจุดเพื่อดูภาพและกราฟ</p>
       </div>
       <div class="head-right">
-        <button class="btn small" data-ext="klong">ระดับน้ำตลอดคลองประเวศ</button>
-        <button class="btn small" data-ext="radar">เรดาร์ฝน</button>
+        <!-- เปิดหน้าเว็บ สนน. ในแท็บใหม่: KlongMap (เลือก "คลองประเวศบุรีรมย์" ในช่องเลือกคลอง) / เรดาร์ฝนหนองจอก
+             ทั้งสองหน้าไม่มีบั๊ก Nav3 (ตรวจ 4 ต.ค. 2569) -->
+        <a class="btn small" href="https://weather.bangkok.go.th/KlongMap" target="_blank" rel="noopener noreferrer"
+           title="เปิดแผนผังบริหารจัดการน้ำของ สนน. แล้วเลือก “คลองประเวศบุรีรมย์” ในช่อง “เลือกคลอง” มุมขวาบน">ระดับน้ำตลอดคลองประเวศ ↗</a>
+        <a class="btn small" href="https://weather.bangkok.go.th/Radar/RadarNongchok.aspx" target="_blank" rel="noopener noreferrer"
+           title="เปิดภาพเรดาร์ฝน สถานีหนองจอก ของ สนน.">เรดาร์ฝน ↗</a>
       </div>
     </div>
     <div class="dist-map" id="distMap"></div>
@@ -390,23 +378,6 @@ body.graph-open { overflow: hidden; }
     · ภาพและกราฟโหลดสดจากเว็บ สนน. เฉพาะจุดที่เลือก · รีเฟรชอัตโนมัติทุก 5 นาที · ไม่ใช่ประกาศทางการ
   </footer>
 </main>
-
-<!-- หน้าเว็บ สนน. เต็มจอ (KlongMap / เรดาร์ฝน): โหลดเมื่อกดปุ่มเท่านั้น ปิดแล้วลบกรอบทิ้ง — ข้อความตั้งใน pages.js EXT_PAGES -->
-<div id="klongOverlay" class="klong-ov" hidden>
-  <div class="klong-bar">
-    <div>
-      <b id="extTitle"></b>
-      <span class="small" id="extSub"></span>
-    </div>
-    <button class="btn small" id="klongClose" aria-label="ปิด">✕ ปิด</button>
-  </div>
-  <div class="klong-frame">
-    <p class="klong-msg" id="extWait"></p>
-    <!-- ป้ายบอกทางไปช่อง "เลือกคลอง" (มุมขวาบนของแผนผัง) — ไม่ผูกตำแหน่ง เพราะผังของ KlongMap กว้างไม่คงที่ -->
-    <div class="klong-hint" aria-hidden="true">ช่อง “เลือกคลอง” อยู่มุมขวาบนของแผนผัง ↗<br>
-      <small>กดแล้วเลือก “คลองประเวศบุรีรมย์” · ถ้าไม่เห็นช่อง ให้เลื่อนแผนผังไปทางขวา</small></div>
-  </div>
-</div>
 
 <div id="lightbox" class="lightbox" hidden>
   <figure><img alt="" referrerpolicy="no-referrer"><figcaption></figcaption></figure>
@@ -725,68 +696,6 @@ function drawProfile24() {
   }).join("") + (narrow ? `<span class="muted">เลข 1–8 = ลำดับจุดตามปุ่มด้านล่าง</span>` : "");
 }
 
-/* ---------- ระดับน้ำตลอดคลองประเวศ (หน้า KlongMap ของ สนน.) ----------
-   หน้าเราอ่านข้อมูล KlongMap (/Klongmap/GetDataForUpdate) เองไม่ได้ (ไม่มี CORS) และสั่งเลือกคลองในกรอบแทนผู้ใช้ไม่ได้
-   → ปุ่มเปิดหน้า KlongMap เต็มจอ ผู้ใช้เลือก "คลองประเวศบุรีรมย์" เองแล้วกราฟของ สนน. ขึ้นใน popup
-   KlongMap ไม่มีบั๊ก Nav3 (ตรวจ 4 ต.ค. 2569) แต่หน้าใหญ่ (~3.3 MB) และดึงข้อมูลทุกสถานี (~2 MB) ทุก 5 นาที
-   จึงโหลดเมื่อกดปุ่มเท่านั้น และปิดแล้วลบกรอบทิ้ง (หยุดการดึงซ้ำ) */
-// เรดาร์ฝน: หน้า RadarNongchok.aspx ของ สนน. (ภาพเรดาร์หนองจอก 965×800 ภาพเดียว ไม่มีรีเฟรชเอง ไม่มีบั๊ก Nav3
-// ตรวจ 4 ต.ค. 2569) — เปิดใหม่ทุกครั้งที่กดปุ่ม จึงได้ภาพล่าสุด
-const EXT_PAGES = {
-  klong: {
-    url: "https:\/\/weather.bangkok.go.th/KlongMap",
-    title: "ระดับน้ำตลอดคลองประเวศ — แผนผังบริหารจัดการน้ำ สนน.",
-    sub: "เลือก “คลองประเวศบุรีรมย์” ในช่อง “เลือกคลอง” มุมขวาบนของแผนผัง",
-    wait: "กำลังโหลดแผนผังจาก สนน.… (ประมาณ 10–20 วินาที)",
-    frameTitle: "แผนผังบริหารจัดการน้ำ กรุงเทพมหานคร จากสำนักการระบายน้ำ",
-    hint: true,
-  },
-  radar: {
-    url: "https:\/\/weather.bangkok.go.th/Radar/RadarNongchok.aspx",
-    title: "เรดาร์ฝน สถานีหนองจอก — สนน.",
-    sub: "ภาพเรดาร์ล่าสุดตอนเปิด · ปิดแล้วกดใหม่เพื่อดูภาพล่าสุด",
-    wait: "กำลังโหลดภาพเรดาร์จาก สนน.…",
-    frameTitle: "เรดาร์ฝน สถานีหนองจอก จากสำนักการระบายน้ำ",
-    hint: false,
-  },
-};
-
-function openExt(key) {
-  const page = EXT_PAGES[key];
-  if (!page) return;
-  const ov = $("#klongOverlay"), wrap = $(".klong-frame", ov);
-  $("iframe", wrap)?.remove();
-  wrap.classList.remove("ready", "hint");
-  $("#extTitle").textContent = page.title;
-  $("#extSub").textContent = page.sub;
-  $("#extWait").textContent = page.wait;
-  ov.hidden = false;
-  document.body.classList.add("graph-open");
-  const f = document.createElement("iframe");
-  f.title = page.frameTitle;
-  f.referrerPolicy = "no-referrer";
-  f.onload = () => {
-    wrap.classList.add("ready");
-    wrap.classList.toggle("hint", page.hint);
-  };
-  f.src = page.url;
-  wrap.appendChild(f);
-  $("#klongClose").focus({ preventScroll: true });
-}
-function closeKlongMap() {
-  const ov = $("#klongOverlay");
-  if (ov.hidden) return;
-  $(".klong-frame iframe", ov)?.remove();
-  $(".klong-frame", ov).classList.remove("hint");
-  ov.hidden = true;
-  document.body.classList.remove("graph-open");
-}
-
-// ผู้ใช้คลิกเข้าไปในแผนผัง (โฟกัสย้ายเข้ากรอบ) → ซ่อนป้ายบอกทาง
-window.addEventListener("blur", () => {
-  if (document.activeElement?.closest?.(".klong-frame")) $(".klong-frame").classList.remove("hint");
-});
-
 let lastRefresh = 0;
 function refresh() {
   lastRefresh = Date.now();
@@ -908,8 +817,6 @@ window.addEventListener("resize", () => {
   rz = setTimeout(() => { drawDistMap(); drawProfile24(); fitGraph(zoomedGraph() || $(`.graph-frame[data-id="${currentId}"]`)); }, 150);
 });
 
-$$("[data-ext]").forEach((b) => b.addEventListener("click", () => openExt(b.dataset.ext)));
-$("#klongClose").addEventListener("click", closeKlongMap);
 $("#stnBar").addEventListener("click", (e) => {
   const b = e.target.closest(".stn-btn");
   if (b) select(Number(b.dataset.id));
@@ -932,8 +839,7 @@ document.addEventListener("click", (e) => {
   } else if (e.target.closest("#lightbox")) lb.hidden = true;
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { $("#lightbox").hidden = true; zoomGraph(zoomedGraph(), false); closeKlongMap(); return; }
-  if (!$("#klongOverlay").hidden) return;
+  if (e.key === "Escape") { $("#lightbox").hidden = true; zoomGraph(zoomedGraph(), false); return; }
   if (zoomedGraph()) return;   // เปิดกราฟเต็มจออยู่ ไม่เปลี่ยนสถานีด้วยลูกศร
   // ลูกศรซ้าย/ขวา เปลี่ยนสถานี (เมื่อไม่ได้เปิดภาพขยายหรือพิมพ์อยู่)
   const busy = !$("#lightbox").hidden || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
